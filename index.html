@@ -18,9 +18,8 @@
   --bg: #0c0e11; --panel: rgba(14, 17, 21, 0.78); --line: rgba(255,255,255,0.12);
   --txt: #eef1f4; --dim: #9aa4ae; --go: #4f9d32; --go-h: #62b842; --red: #e0463a;
   --fc: 'Barlow Condensed', 'Arial Narrow', sans-serif; --fb: 'Barlow', system-ui, sans-serif;
+  color-scheme: dark; /* the game commits to one dark look in every host theme */
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0c0e11; --txt: #eef1f4; } }
-:root[data-theme="dark"] { --bg: #0c0e11; --txt: #eef1f4; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--txt); font-family: var(--fb); user-select: none; -webkit-user-select: none; touch-action: none; }
 body.ingame, body.ingame canvas#gl { cursor: none; }
