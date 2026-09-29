@@ -68,8 +68,17 @@ async function boot() {
     uniforms: { top: { value: new THREE.Color(0x3f78c0) }, horizon: { value: new THREE.Color(0xe2dccb) }, bottom: { value: new THREE.Color(0xb7a584) }, sunDir: { value: sunDir } },
     vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `uniform vec3 top, horizon, bottom, sunDir; varying vec3 vDir;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
       void main(){ vec3 d = normalize(vDir); float h = d.y;
         vec3 c = mix(horizon, top, pow(max(h, 0.0), 0.55));
+        if (h > 0.0) {
+          vec2 uv = d.xz / (h + 0.12) * 1.2;
+          float cl = smoothstep(0.52, 0.78, fbm(uv + vec2(3.7, 1.3)));
+          c = mix(c, vec3(0.97, 0.95, 0.92), cl * 0.75 * smoothstep(0.02, 0.25, h));
+        }
         if (h < 0.0) c = mix(horizon, bottom, min(1.0, -h * 5.0));
         float s = max(dot(d, sunDir), 0.0);
         c += vec3(1.0, 0.92, 0.75) * pow(s, 900.0) * 6.0 + vec3(1.0, 0.85, 0.6) * pow(s, 12.0) * 0.35;
@@ -502,7 +511,7 @@ function updateCamera(dt) {
     camera.position.copy(_e);
     const sh = p.shake || 0;
     if (sh > 0) { camera.position.x += (Math.random() - 0.5) * sh * 0.12; camera.position.y += (Math.random() - 0.5) * sh * 0.12; p.shake = Math.max(0, sh - dt * 1.2); }
-    camera.rotation.set(p.pitch + p.punch.y * DEG, p.yaw - p.punch.x * DEG, 0);
+    camera.rotation.set(p.pitch + (p.punch.y + (p.hitPunch || 0)) * DEG, p.yaw - p.punch.x * DEG, (p.hitPunch || 0) * 0.3 * DEG);
     if (p.zoom > 0) fovZ = p.curDef.scope[p.zoom - 1];
   } else if (v === p) {
     // death cam: stay at death spot and look at killer

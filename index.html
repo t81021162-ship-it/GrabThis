@@ -503,8 +503,17 @@ async function boot() {
     uniforms: { top: { value: new THREE.Color(0x3f78c0) }, horizon: { value: new THREE.Color(0xe2dccb) }, bottom: { value: new THREE.Color(0xb7a584) }, sunDir: { value: sunDir } },
     vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `uniform vec3 top, horizon, bottom, sunDir; varying vec3 vDir;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
       void main(){ vec3 d = normalize(vDir); float h = d.y;
         vec3 c = mix(horizon, top, pow(max(h, 0.0), 0.55));
+        if (h > 0.0) {
+          vec2 uv = d.xz / (h + 0.12) * 1.2;
+          float cl = smoothstep(0.52, 0.78, fbm(uv + vec2(3.7, 1.3)));
+          c = mix(c, vec3(0.97, 0.95, 0.92), cl * 0.75 * smoothstep(0.02, 0.25, h));
+        }
         if (h < 0.0) c = mix(horizon, bottom, min(1.0, -h * 5.0));
         float s = max(dot(d, sunDir), 0.0);
         c += vec3(1.0, 0.92, 0.75) * pow(s, 900.0) * 6.0 + vec3(1.0, 0.85, 0.6) * pow(s, 12.0) * 0.35;
@@ -937,7 +946,7 @@ function updateCamera(dt) {
     camera.position.copy(_e);
     const sh = p.shake || 0;
     if (sh > 0) { camera.position.x += (Math.random() - 0.5) * sh * 0.12; camera.position.y += (Math.random() - 0.5) * sh * 0.12; p.shake = Math.max(0, sh - dt * 1.2); }
-    camera.rotation.set(p.pitch + p.punch.y * DEG, p.yaw - p.punch.x * DEG, 0);
+    camera.rotation.set(p.pitch + (p.punch.y + (p.hitPunch || 0)) * DEG, p.yaw - p.punch.x * DEG, (p.hitPunch || 0) * 0.3 * DEG);
     if (p.zoom > 0) fovZ = p.curDef.scope[p.zoom - 1];
   } else if (v === p) {
     // death cam: stay at death spot and look at killer
@@ -2058,6 +2067,15 @@ class World {
     const shutMats = T.shutter.map(t => new THREE.MeshStandardMaterial({ map: t, roughness: 0.85 }));
     const beamMat = new THREE.MeshStandardMaterial({ color: 0x4a3524, roughness: 0.9 });
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x7a6a52, roughness: 0.95 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffc070, emissiveIntensity: 3 });
+    const awningMats = [[0x9c3b2e, 0xd8c7a0], [0x3d6f86, 0xd8d0b8], [0x5d7a3a, 0xd6c8a0]].map(([a, b]) => {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+      const x = c.getContext('2d');
+      for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#' + b.toString(16) : '#' + a.toString(16); x.fillRect(i * 16, 0, 16, 64); }
+      x.fillStyle = 'rgba(60,40,20,0.25)'; x.fillRect(0, 48, 128, 16);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.MeshStandardMaterial({ map: t, roughness: 1, side: THREE.DoubleSide });
+    });
     for (const d of decor) {
       const cxw = this.cx2x(d.cx), czw = this.cz2z(d.cz);
       // position on the wall face
@@ -2069,6 +2087,15 @@ class World {
         const m = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.4, 0.08), doorMats[rr() < 0.5 ? 0 : 1]);
         m.position.set(0, 1.2, 0.02); g.add(m);
         const fr = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.2), frameMat); fr.position.set(0, 2.5, 0.05); g.add(fr);
+        if (rr() < 0.55) { // cloth awning over the door
+          const aw = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.1), awningMats[Math.floor(rr() * awningMats.length)]);
+          aw.position.set(0, 2.95, 0.45); aw.rotation.x = -1.05; g.add(aw);
+          for (const sx of [-0.9, 0.9]) { const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.95), beamMat); pole.position.set(sx, 2.72, 0.5); pole.rotation.x = 1.1; g.add(pole); }
+        } else if (rr() < 0.5) { // wall lamp
+          const br = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), beamMat); br.position.set(0.95, 2.85, 0.15); g.add(br);
+          const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), lampMat); bulb.position.set(0.95, 2.78, 0.3); g.add(bulb);
+          const shade2 = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.1, 10, 1, true), beamMat); shade2.position.set(0.95, 2.86, 0.3); g.add(shade2);
+        }
       } else if (d.type === 'window') {
         const m = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.3, 0.06), shutMats[Math.floor(rr() * 3)]);
         m.position.set(0, 0, 0.02); g.add(m);
@@ -2080,6 +2107,38 @@ class World {
       }
       g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
       group.add(g);
+    }
+
+    // Sagging overhead wires strung across corridors
+    const wireMat = new THREE.MeshStandardMaterial({ color: 0x1a1714, roughness: 0.8 });
+    const wire = (a, b) => {
+      const pts = [];
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10;
+        pts.push(new THREE.Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 0.6, a.z + (b.z - a.z) * t));
+      }
+      const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.012, 4), wireMat);
+      m.castShadow = true; group.add(m);
+    };
+    for (let cz = 2; cz < GH - 2; cz += 5) for (let cx = 1; cx < GW - 1; cx++) {
+      const i = this.idx(cx, cz);
+      if (this.kind[i] !== K_WALL || this.kind[this.idx(cx + 1, cz)] === K_WALL) continue;
+      let ex = cx + 1; while (ex < GW && this.kind[this.idx(ex, cz)] !== K_WALL) ex++;
+      if (ex >= GW || ex - cx > 7 || ex - cx < 3) continue;
+      if (rr() < 0.35) continue;
+      const h = Math.min(this.wallH[i], this.wallH[this.idx(ex, cz)]) - 0.6 - rr() * 0.8;
+      const z = this.cz2z(cz) + (rr() - 0.5) * 1.2;
+      wire(new THREE.Vector3((cx + 1 - GW / 2) * CELL, h, z), new THREE.Vector3((ex - GW / 2) * CELL, h - rr() * 0.4, z + (rr() - 0.5) * 1.5));
+    }
+    for (let cx = 3; cx < GW - 2; cx += 6) for (let cz = 1; cz < GH - 1; cz++) {
+      const i = this.idx(cx, cz);
+      if (this.kind[i] !== K_WALL || this.kind[this.idx(cx, cz + 1)] === K_WALL) continue;
+      let ez = cz + 1; while (ez < GH && this.kind[this.idx(cx, ez)] !== K_WALL) ez++;
+      if (ez >= GH || ez - cz > 7 || ez - cz < 3) continue;
+      if (rr() < 0.4) continue;
+      const h = Math.min(this.wallH[i], this.wallH[this.idx(cx, ez)]) - 0.6 - rr() * 0.8;
+      const x = this.cx2x(cx) + (rr() - 0.5) * 1.2;
+      wire(new THREE.Vector3(x, h, (cz + 1 - GH / 2) * CELL), new THREE.Vector3(x + (rr() - 0.5) * 1.5, h - rr() * 0.4, (ez - GH / 2) * CELL));
     }
 
     // Lintel beams over doorways
@@ -2116,7 +2175,6 @@ class World {
     letter(T.letterB, 9, 2, 0, -1, 2.8);
 
     // Tunnel lamps
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffc070, emissiveIntensity: 3 });
     const lampSpots = [[7, 30], [7, 39], [13, 25], [7, 25], [10, 45]];
     for (const [x, z] of lampSpots) {
       const y = this.roof[this.idx(x, z)] ? this.roof[this.idx(x, z)][0] : 3.4;
@@ -2365,7 +2423,7 @@ function M(color, rough = 0.6, metal = 0.2, extra = {}) {
   if (!matCache[key]) matCache[key] = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
   return matCache[key];
 }
-const MET = () => M(0x2a2b2e, 0.42, 0.6);
+const MET = () => M(0x323438, 0.4, 0.6);
 const MET2 = () => M(0x3a3c40, 0.48, 0.55);
 const POLY = () => M(0x222222, 0.75, 0.05);
 const WOOD = () => M(0x5e3620, 0.5, 0.05);
@@ -2417,6 +2475,10 @@ const builders = {
     box(g, 0.044, 0.075, 0.28, 0, 0.005, 0.29, WOOD(), 0.1);
     box(g, 0.046, 0.1, 0.02, 0, -0.005, 0.43, POLY(), 0.1);
     cyl(g, 0.006, 0.006, 0.04, 0.035, 0.06, -0.12, MET(), 8, 'x');
+    for (let i = 0; i < 4; i++) box(g, 0.046, 0.004, 0.012, 0, 0.091, 0.04 - i * 0.05, MET2());
+    box(g, 0.004, 0.02, 0.1, 0.027, 0.04, -0.02, MET2()); // selector lever
+    box(g, 0.02, 0.012, 0.05, 0, 0.1, -0.2, MET()); // rear sight leaf
+    box(g, 0.054, 0.012, 0.012, 0, 0.012, -0.21, MET2()); // receiver rivet band
     return { rh: [0, -0.05, 0.07], lh: [0, 0.02, -0.33], muzzle: [0, 0.05, -0.72], mag, eject: [0.03, 0.06, -0.05] };
   },
   m4a4(g, silenced = false) {
@@ -3531,17 +3593,17 @@ __defs['viewmodel'] = (__exports) => {
 const { buildWeaponModel, WEAPONS } = __req('weapons');
 const { attachArms } = __req('characters');
 const OFFSETS = {
-  rifle: [0.17, -0.19, -0.40],
-  smg: [0.16, -0.18, -0.40],
-  shotgun: [0.17, -0.19, -0.40],
-  sniper: [0.17, -0.2, -0.38],
+  rifle: [0.19, -0.2, -0.43],
+  smg: [0.17, -0.18, -0.42],
+  shotgun: [0.19, -0.2, -0.43],
+  sniper: [0.18, -0.21, -0.47],
   pistol: [0.12, -0.15, -0.42],
   knife: [0.15, -0.17, -0.42],
   grenade: [0.15, -0.17, -0.36],
   c4: [0.07, -0.2, -0.4],
 };
 const ROT = {
-  rifle: [0.0, 0.06, 0.03], smg: [0, 0.06, 0.03], shotgun: [0, 0.06, 0.03], sniper: [0, 0.05, 0.02],
+  rifle: [0.02, 0.15, 0.05], smg: [0.02, 0.13, 0.04], shotgun: [0.02, 0.14, 0.05], sniper: [0.02, 0.1, 0.03],
   pistol: [0.02, 0.05, 0.02], knife: [0.35, 0.55, -0.35], grenade: [0.1, 0.2, 0.1], c4: [0.2, 0, 0],
 };
 
@@ -3584,7 +3646,7 @@ class ViewModel {
       attachArms(g, team, this.T);
       g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
       // stocks sit behind the camera in first person; cull them like most shooters do
-      for (const o of g.children) if (o.isMesh && o.position.z > 0.18) o.visible = false;
+      for (const o of g.children) if (o.isMesh && o.position.z > 0.12) o.visible = false;
       this.cache[key] = g;
     }
     this.model = this.cache[key];
@@ -4402,6 +4464,7 @@ class Game {
       a.punch.y += (ty - a.punch.y) * Math.min(1, dt * 25);
     } else { a.punch.x *= Math.exp(-dt * 10); a.punch.y *= Math.exp(-dt * 10); }
     a.flinch *= Math.exp(-dt * 10);
+    if (a.hitPunch) { a.hitPunch *= Math.exp(-dt * 9); if (a.hitPunch < 0.01) a.hitPunch = 0; }
 
     // fire input
     const firePress = inp.fire && !a.prev.fire, fire2Press = inp.fire2 && !a.prev.fire2;
@@ -4515,7 +4578,7 @@ class Game {
       const ang = Math.random() * Math.PI * 2;
       const r = (d.spreadFixed ? d.spreadFixed * Math.sqrt(Math.random()) : 0) + inacc * Math.random();
       const yaw = a.yaw - rx * DEG + Math.cos(ang) * r;
-      const pitch = a.pitch + ry * DEG + Math.sin(ang) * r;
+      const pitch = a.pitch + (ry + (a.hitPunch || 0)) * DEG + Math.sin(ang) * r;
       const cp = Math.cos(pitch);
       const dir = new THREE.Vector3(-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp);
       const res = this.trace(a, eye, dir, 200);
@@ -4608,6 +4671,10 @@ class Game {
     const dealt = Math.min(hp, b.health);
     b.health -= hp;
     b.flinch = 1; b.model.flinch = 1;
+    // tagging: getting shot slows you down, and knocks the view (aim punch)
+    const slow = armored ? 0.6 : 0.45;
+    b.vel.x *= slow; b.vel.z *= slow;
+    b.hitPunch = Math.min(4, (b.hitPunch || 0) + Math.min(3, hp * 0.06));
     if (a && a !== b) {
       a.stats.dmg += dealt;
       b.dmgBy.set(a, (b.dmgBy.get(a) || 0) + dealt);

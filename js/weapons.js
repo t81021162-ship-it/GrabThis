@@ -86,7 +86,7 @@ function M(color, rough = 0.6, metal = 0.2, extra = {}) {
   if (!matCache[key]) matCache[key] = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
   return matCache[key];
 }
-const MET = () => M(0x2a2b2e, 0.42, 0.6);
+const MET = () => M(0x323438, 0.4, 0.6);
 const MET2 = () => M(0x3a3c40, 0.48, 0.55);
 const POLY = () => M(0x222222, 0.75, 0.05);
 const WOOD = () => M(0x5e3620, 0.5, 0.05);
@@ -138,6 +138,10 @@ const builders = {
     box(g, 0.044, 0.075, 0.28, 0, 0.005, 0.29, WOOD(), 0.1);
     box(g, 0.046, 0.1, 0.02, 0, -0.005, 0.43, POLY(), 0.1);
     cyl(g, 0.006, 0.006, 0.04, 0.035, 0.06, -0.12, MET(), 8, 'x');
+    for (let i = 0; i < 4; i++) box(g, 0.046, 0.004, 0.012, 0, 0.091, 0.04 - i * 0.05, MET2());
+    box(g, 0.004, 0.02, 0.1, 0.027, 0.04, -0.02, MET2()); // selector lever
+    box(g, 0.02, 0.012, 0.05, 0, 0.1, -0.2, MET()); // rear sight leaf
+    box(g, 0.054, 0.012, 0.012, 0, 0.012, -0.21, MET2()); // receiver rivet band
     return { rh: [0, -0.05, 0.07], lh: [0, 0.02, -0.33], muzzle: [0, 0.05, -0.72], mag, eject: [0.03, 0.06, -0.05] };
   },
   m4a4(g, silenced = false) {

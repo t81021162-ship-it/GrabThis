@@ -377,6 +377,7 @@ export class Game {
       a.punch.y += (ty - a.punch.y) * Math.min(1, dt * 25);
     } else { a.punch.x *= Math.exp(-dt * 10); a.punch.y *= Math.exp(-dt * 10); }
     a.flinch *= Math.exp(-dt * 10);
+    if (a.hitPunch) { a.hitPunch *= Math.exp(-dt * 9); if (a.hitPunch < 0.01) a.hitPunch = 0; }
 
     // fire input
     const firePress = inp.fire && !a.prev.fire, fire2Press = inp.fire2 && !a.prev.fire2;
@@ -490,7 +491,7 @@ export class Game {
       const ang = Math.random() * Math.PI * 2;
       const r = (d.spreadFixed ? d.spreadFixed * Math.sqrt(Math.random()) : 0) + inacc * Math.random();
       const yaw = a.yaw - rx * DEG + Math.cos(ang) * r;
-      const pitch = a.pitch + ry * DEG + Math.sin(ang) * r;
+      const pitch = a.pitch + (ry + (a.hitPunch || 0)) * DEG + Math.sin(ang) * r;
       const cp = Math.cos(pitch);
       const dir = new THREE.Vector3(-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp);
       const res = this.trace(a, eye, dir, 200);
@@ -583,6 +584,10 @@ export class Game {
     const dealt = Math.min(hp, b.health);
     b.health -= hp;
     b.flinch = 1; b.model.flinch = 1;
+    // tagging: getting shot slows you down, and knocks the view (aim punch)
+    const slow = armored ? 0.6 : 0.45;
+    b.vel.x *= slow; b.vel.z *= slow;
+    b.hitPunch = Math.min(4, (b.hitPunch || 0) + Math.min(3, hp * 0.06));
     if (a && a !== b) {
       a.stats.dmg += dealt;
       b.dmgBy.set(a, (b.dmgBy.get(a) || 0) + dealt);

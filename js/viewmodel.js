@@ -4,17 +4,17 @@ import { buildWeaponModel, WEAPONS } from './weapons.js';
 import { attachArms } from './characters.js';
 
 const OFFSETS = {
-  rifle: [0.17, -0.19, -0.40],
-  smg: [0.16, -0.18, -0.40],
-  shotgun: [0.17, -0.19, -0.40],
-  sniper: [0.17, -0.2, -0.38],
+  rifle: [0.19, -0.2, -0.43],
+  smg: [0.17, -0.18, -0.42],
+  shotgun: [0.19, -0.2, -0.43],
+  sniper: [0.18, -0.21, -0.47],
   pistol: [0.12, -0.15, -0.42],
   knife: [0.15, -0.17, -0.42],
   grenade: [0.15, -0.17, -0.36],
   c4: [0.07, -0.2, -0.4],
 };
 const ROT = {
-  rifle: [0.0, 0.06, 0.03], smg: [0, 0.06, 0.03], shotgun: [0, 0.06, 0.03], sniper: [0, 0.05, 0.02],
+  rifle: [0.02, 0.15, 0.05], smg: [0.02, 0.13, 0.04], shotgun: [0.02, 0.14, 0.05], sniper: [0.02, 0.1, 0.03],
   pistol: [0.02, 0.05, 0.02], knife: [0.35, 0.55, -0.35], grenade: [0.1, 0.2, 0.1], c4: [0.2, 0, 0],
 };
 
@@ -57,7 +57,7 @@ export class ViewModel {
       attachArms(g, team, this.T);
       g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
       // stocks sit behind the camera in first person; cull them like most shooters do
-      for (const o of g.children) if (o.isMesh && o.position.z > 0.18) o.visible = false;
+      for (const o of g.children) if (o.isMesh && o.position.z > 0.12) o.visible = false;
       this.cache[key] = g;
     }
     this.model = this.cache[key];

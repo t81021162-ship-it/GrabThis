@@ -526,6 +526,15 @@ export class World {
     const shutMats = T.shutter.map(t => new THREE.MeshStandardMaterial({ map: t, roughness: 0.85 }));
     const beamMat = new THREE.MeshStandardMaterial({ color: 0x4a3524, roughness: 0.9 });
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x7a6a52, roughness: 0.95 });
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffc070, emissiveIntensity: 3 });
+    const awningMats = [[0x9c3b2e, 0xd8c7a0], [0x3d6f86, 0xd8d0b8], [0x5d7a3a, 0xd6c8a0]].map(([a, b]) => {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+      const x = c.getContext('2d');
+      for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#' + b.toString(16) : '#' + a.toString(16); x.fillRect(i * 16, 0, 16, 64); }
+      x.fillStyle = 'rgba(60,40,20,0.25)'; x.fillRect(0, 48, 128, 16);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.MeshStandardMaterial({ map: t, roughness: 1, side: THREE.DoubleSide });
+    });
     for (const d of decor) {
       const cxw = this.cx2x(d.cx), czw = this.cz2z(d.cz);
       // position on the wall face
@@ -537,6 +546,15 @@ export class World {
         const m = new THREE.Mesh(new THREE.BoxGeometry(1.3, 2.4, 0.08), doorMats[rr() < 0.5 ? 0 : 1]);
         m.position.set(0, 1.2, 0.02); g.add(m);
         const fr = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.2), frameMat); fr.position.set(0, 2.5, 0.05); g.add(fr);
+        if (rr() < 0.55) { // cloth awning over the door
+          const aw = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.1), awningMats[Math.floor(rr() * awningMats.length)]);
+          aw.position.set(0, 2.95, 0.45); aw.rotation.x = -1.05; g.add(aw);
+          for (const sx of [-0.9, 0.9]) { const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.95), beamMat); pole.position.set(sx, 2.72, 0.5); pole.rotation.x = 1.1; g.add(pole); }
+        } else if (rr() < 0.5) { // wall lamp
+          const br = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), beamMat); br.position.set(0.95, 2.85, 0.15); g.add(br);
+          const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), lampMat); bulb.position.set(0.95, 2.78, 0.3); g.add(bulb);
+          const shade2 = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.1, 10, 1, true), beamMat); shade2.position.set(0.95, 2.86, 0.3); g.add(shade2);
+        }
       } else if (d.type === 'window') {
         const m = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.3, 0.06), shutMats[Math.floor(rr() * 3)]);
         m.position.set(0, 0, 0.02); g.add(m);
@@ -548,6 +566,38 @@ export class World {
       }
       g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
       group.add(g);
+    }
+
+    // Sagging overhead wires strung across corridors
+    const wireMat = new THREE.MeshStandardMaterial({ color: 0x1a1714, roughness: 0.8 });
+    const wire = (a, b) => {
+      const pts = [];
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10;
+        pts.push(new THREE.Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t - Math.sin(t * Math.PI) * 0.6, a.z + (b.z - a.z) * t));
+      }
+      const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.012, 4), wireMat);
+      m.castShadow = true; group.add(m);
+    };
+    for (let cz = 2; cz < GH - 2; cz += 5) for (let cx = 1; cx < GW - 1; cx++) {
+      const i = this.idx(cx, cz);
+      if (this.kind[i] !== K_WALL || this.kind[this.idx(cx + 1, cz)] === K_WALL) continue;
+      let ex = cx + 1; while (ex < GW && this.kind[this.idx(ex, cz)] !== K_WALL) ex++;
+      if (ex >= GW || ex - cx > 7 || ex - cx < 3) continue;
+      if (rr() < 0.35) continue;
+      const h = Math.min(this.wallH[i], this.wallH[this.idx(ex, cz)]) - 0.6 - rr() * 0.8;
+      const z = this.cz2z(cz) + (rr() - 0.5) * 1.2;
+      wire(new THREE.Vector3((cx + 1 - GW / 2) * CELL, h, z), new THREE.Vector3((ex - GW / 2) * CELL, h - rr() * 0.4, z + (rr() - 0.5) * 1.5));
+    }
+    for (let cx = 3; cx < GW - 2; cx += 6) for (let cz = 1; cz < GH - 1; cz++) {
+      const i = this.idx(cx, cz);
+      if (this.kind[i] !== K_WALL || this.kind[this.idx(cx, cz + 1)] === K_WALL) continue;
+      let ez = cz + 1; while (ez < GH && this.kind[this.idx(cx, ez)] !== K_WALL) ez++;
+      if (ez >= GH || ez - cz > 7 || ez - cz < 3) continue;
+      if (rr() < 0.4) continue;
+      const h = Math.min(this.wallH[i], this.wallH[this.idx(cx, ez)]) - 0.6 - rr() * 0.8;
+      const x = this.cx2x(cx) + (rr() - 0.5) * 1.2;
+      wire(new THREE.Vector3(x, h, (cz + 1 - GH / 2) * CELL), new THREE.Vector3(x + (rr() - 0.5) * 1.5, h - rr() * 0.4, (ez - GH / 2) * CELL));
     }
 
     // Lintel beams over doorways
@@ -584,7 +634,6 @@ export class World {
     letter(T.letterB, 9, 2, 0, -1, 2.8);
 
     // Tunnel lamps
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffc070, emissiveIntensity: 3 });
     const lampSpots = [[7, 30], [7, 39], [13, 25], [7, 25], [10, 45]];
     for (const [x, z] of lampSpots) {
       const y = this.roof[this.idx(x, z)] ? this.roof[this.idx(x, z)][0] : 3.4;
