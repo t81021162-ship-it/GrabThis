@@ -37,6 +37,7 @@ const Game = {
       renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     } catch (e) { return fail('Your browser could not start WebGL. Try a recent Chrome, Edge, Firefox or Safari.'); }
     renderer.setPixelRatio(1);
+    Game.renderer = renderer; Game.debugScene = () => ({ scene, camera });
     renderer.autoClear = false;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -45,7 +46,7 @@ const Game = {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
     scene.fog = new THREE.FogExp2(0x040404, 0.058);
-    camera = new THREE.PerspectiveCamera(72, 1, 0.05, 90);
+    camera = new THREE.PerspectiveCamera(72, 1, 0.05, 44);   // the fog swallows everything past this anyway
     scene.add(camera);
 
     hemi = new THREE.HemisphereLight(0x6a7488, 0x2c1e12, 1.1);
@@ -66,6 +67,7 @@ const Game = {
     Fx.init(scene);
     Level.buildStatic(scene);
     Entities.init(scene);
+    Game.merged = Level.mergeStatic(scene);
     Monsters.init(scene);
     Player.init(camera);
     Game.player = Player.P;
@@ -342,7 +344,7 @@ const Game = {
     const acc = Game.stats.shots ? Math.round(Game.stats.hits / Game.stats.shots * 100) : 0;
     const found = recordEnding(kind); showEndingsFound();
     UI.show('hud', false); UI.show('touch', false);
-    UI.showEnding(kind, `Time ${mm}:${String(ss).padStart(2, '0')} · ${Game.stats.kills} creatures put to rest · ${acc}% accuracy`, found);
+    UI.showEnding(kind, `Time ${mm}:${String(ss).padStart(2, '0')} · ${Game.stats.kills} ${Game.stats.kills === 1 ? 'creature' : 'creatures'} put to rest · ${acc}% accuracy`, found);
     clearEscape();
   }
 
@@ -378,7 +380,7 @@ const Game = {
   })();
 
   function startEscape(kind, fresh) {
-    const total = kind === 'burn' ? 105 : 120;
+    const total = kind === 'burn' ? 80 : 95;
     Game.escape = { kind, t: total, total, idx: 0, fireT: 0, rumbleT: 4, crackT: 0, warpT: 6 };
     Game.state.flags.escape = true;
     Monsters.spawnEvent('escape', true);

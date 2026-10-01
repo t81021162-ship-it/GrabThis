@@ -61,7 +61,7 @@ const Props = (() => {
   const C = (c, o) => Level.C(c, o);
 
   function place(obj, x, z, rot = 0, y = 0) { obj.position.set(x * CELL, y, z * CELL); obj.rotation.y = rot; scene.add(obj); return obj; }
-  function add(g, geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; g.add(m); return m; }
+  function add(g, geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; m.userData.merge = true; g.add(m); return m; }
   function collider(x, z, hw, hd, h) { Level.addCollider({ x0: x * CELL - hw, x1: x * CELL + hw, z0: z * CELL - hd, z1: z * CELL + hd, h }); }
 
   const BUILD = {
@@ -70,7 +70,7 @@ const Props = (() => {
       const n = Tex.getNormal('carpet').clone(); n.repeat.set(p.w / 2, p.d / 2); n.needsUpdate = true;
       const m = Shaders.patchWorld(new THREE.MeshPhongMaterial({ map: t, normalMap: n, color: p.color || 0x8a3a3a, shininess: 2, polygonOffset: true, polygonOffsetFactor: -1 }), { mould: 0.5 });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.d), m);
-      mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x * CELL, 0.012, p.z * CELL); mesh.receiveShadow = true; scene.add(mesh);
+      mesh.rotation.x = -Math.PI / 2; mesh.position.set(p.x * CELL, 0.012, p.z * CELL); mesh.receiveShadow = true; scene.add(mesh);   // unique texture repeat per rug: not merged
       const edge = new THREE.Mesh(new THREE.PlaneGeometry(p.w * 0.92, p.d * 0.94), new THREE.MeshBasicMaterial({ visible: false })); // keeps the footprint explicit
       return mesh;
     },
@@ -94,8 +94,8 @@ const Props = (() => {
       const hand = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.12, 0.01), C(0x111111)); hand.position.set(0, 2.06, 0.2); g.add(hand);
       const hand2 = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.09, 0.01), C(0x111111)); hand2.position.set(0.02, 2.02, 0.2); hand2.rotation.z = -1.7; g.add(hand2);
       const pend = new THREE.Group(); pend.position.set(0, 1.6, 0.17); g.add(pend);
-      add(pend, new THREE.CylinderGeometry(0.008, 0.008, 0.6, 4), C(0x8a7a3a, { shininess: 60 }), 0, -0.3, 0, false);
-      add(pend, new THREE.CylinderGeometry(0.1, 0.1, 0.02, 12), C(0xb09a40, { shininess: 80, spec: 0x888855 }), 0, -0.62, 0, false).rotation.x = Math.PI / 2;
+      add(pend, new THREE.CylinderGeometry(0.008, 0.008, 0.6, 4), C(0x8a7a3a, { shininess: 60 }), 0, -0.3, 0, false).userData.merge = false;
+      const bob = add(pend, new THREE.CylinderGeometry(0.1, 0.1, 0.02, 12), C(0xb09a40, { shininess: 80, spec: 0x888855 }), 0, -0.62, 0, false); bob.rotation.x = Math.PI / 2; bob.userData.merge = false;
       dyn.push((dt, time) => { pend.rotation.z = Math.sin(time * 2.6) * 0.14; });
       place(g, p.x, p.z, p.rot || 0);
       collider(p.x, p.z, 0.3, 0.3, 2.3);
@@ -103,7 +103,7 @@ const Props = (() => {
     urn(p) {
       const pts = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(0.06 + Math.sin(t * Math.PI * 0.95) * 0.2 + (t > 0.85 ? 0.05 : 0), t * 0.85)); }
       const g = new THREE.Mesh(new THREE.LatheGeometry(pts, 14), C(0x6a7a8a, { shininess: 60, spec: 0x99aabb }));
-      g.castShadow = true; g.receiveShadow = true; g.material.side = THREE.DoubleSide;
+      g.castShadow = true; g.receiveShadow = true; g.material.side = THREE.DoubleSide; g.userData.merge = true;
       place(g, p.x, p.z, 0);
       collider(p.x, p.z, 0.25, 0.25, 0.85);
     },
@@ -156,8 +156,10 @@ const Props = (() => {
   }
 
   // ---------- organic stuff ----------
+  const fleshCache = {};
   function fleshMat(color = 0x6a5048, veins = 1) {
-    return Shaders.patchFlesh(new THREE.MeshPhongMaterial({ color, map: Tex.get('skin'), normalMap: Tex.getNormal('skin'), shininess: 45, specular: 0x443333 }), U, { veins });
+    const k = color + ':' + veins;
+    return fleshCache[k] || (fleshCache[k] = Shaders.patchFlesh(new THREE.MeshPhongMaterial({ color, map: Tex.get('skin'), normalMap: Tex.getNormal('skin'), shininess: 45, specular: 0x443333 }), U, { veins }));
   }
   function vine(x0, y0, z0, n, len = 3, radius = 0.05) {
     const pts = [];
@@ -169,11 +171,11 @@ const Props = (() => {
     }
     const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 30, radius * rr(0.7, 1.4), 6, false);
     const m = new THREE.Mesh(geo, fleshMat(0x5e4a3a));
-    m.castShadow = false; m.receiveShadow = true; scene.add(m);
+    m.castShadow = false; m.receiveShadow = true; m.userData.merge = true; scene.add(m);
   }
   function mushrooms(x, z, n, scale = 1) {
-    const cap = new THREE.MeshPhongMaterial({ color: 0x6a5c28, emissive: 0xa88a1c, emissiveIntensity: 0.45, shininess: 50 });
-    glowCaps.push(cap);
+    if (!glowCaps.length) glowCaps.push(new THREE.MeshPhongMaterial({ color: 0x6a5c28, emissive: 0xa88a1c, emissiveIntensity: 0.45, shininess: 50 }));
+    const cap = glowCaps[0];
     const stem = C(0xb8ac88, { shininess: 10, mould: 0.2 });
     for (let i = 0; i < n; i++) {
       const h = rr(0.1, 0.42) * scale, r = rr(0.06, 0.15) * scale;
@@ -222,8 +224,8 @@ const Props = (() => {
       pts.push(core.clone().add(new THREE.Vector3(rr(-0.25, 0.25), rr(-0.4, 0.4), rr(-0.25, 0.25))));
       const r = rr(0.12, 0.3);
       const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 36, r, 8, false), mat);
-      m.castShadow = true; m.receiveShadow = true; g.add(m);
-      if (i % 2 === 0) { const tip = new THREE.Mesh(new THREE.SphereGeometry(r * 1.7, 8, 6), mat); tip.position.copy(pts[0]); g.add(tip); }
+      m.castShadow = true; m.receiveShadow = true; m.userData.merge = true; g.add(m);
+      if (i % 2 === 0) { const tip = new THREE.Mesh(new THREE.SphereGeometry(r * 1.7, 8, 6), mat); tip.position.copy(pts[0]); tip.userData.merge = true; g.add(tip); }
     }
     // the knot itself
     const bulbMat = Shaders.patchFlesh(new THREE.MeshPhongMaterial({ color: 0xc9a04a, emissive: 0x8a5a10, shininess: 70, specular: 0x665533 }), U, { veins: 0 });
@@ -241,6 +243,7 @@ const Props = (() => {
     const hair = add(body, new THREE.SphereGeometry(0.165, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), C(0x2a1a12, { mould: 0 }), 0, 0.64, -0.01, false); hair.rotation.x = -0.25;
     for (const s of [-1, 1]) { const arm = add(body, new THREE.CylinderGeometry(0.05, 0.04, 0.62, 6), skin, s * 0.22, 0.05, 0.1, false); arm.rotation.set(-0.2, 0, s * 0.12); }
     body.rotation.z = 0.04;
+    cocoon.traverse(o => { if (o.isMesh) o.userData.merge = false; });
     root.cocoon = cocoon; root.shell = shell;
     scene.add(g);
     Level.addCollider({ x0: 2.0, x1: 6.5, z0: 2.6, z1: 9.4, h: 3 });
@@ -249,7 +252,7 @@ const Props = (() => {
       let z = rr(2.6, 9.4), x = 6.4; const pts = [];
       for (let k = 0; k < 6; k++) { pts.push(new THREE.Vector3(x, 0.05 + rnd() * 0.12, z)); x += rr(1, 2.4); z += rr(-0.7, 0.7); }
       const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, rr(0.04, 0.1), 6), mat);
-      m.receiveShadow = true; scene.add(m);
+      m.receiveShadow = true; m.userData.merge = true; scene.add(m);
     }
   }
 

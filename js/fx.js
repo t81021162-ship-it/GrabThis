@@ -30,7 +30,7 @@ const Fx = (() => {
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx);
     const m = new THREE.Mesh(g, mat);
-    m.frustumCulled = false; m.renderOrder = 2;
+    m.renderOrder = 2; m.userData.merge = true;
     return m;
   }
 

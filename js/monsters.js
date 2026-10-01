@@ -225,9 +225,10 @@ const Monsters = (() => {
   function buildMatron(U) {
     const { flesh, head: headMat, rag, bloom } = mats(U, { skin: 0x8a6e62, cloth: 0x2e2220, glow: 0xf0c050, face: 'faceA', shine: 40 });
     const root = new THREE.Group();
-    const skirt = mesh(new THREE.ConeGeometry(1.15, 1.9, 16, 3, true), rag, root, 0, 0.95, 0); skirt.material.side = THREE.DoubleSide;
-    const tendrils = buildTendrils(root, 9, 1.5, 6, 0.1, flesh, 0.25, 1.0);
-    const body = new THREE.Group(); body.position.y = 2.05; root.add(body);
+    const vis = new THREE.Group(); root.add(vis);
+    const skirt = mesh(new THREE.ConeGeometry(1.15, 1.9, 16, 3, true), rag, vis, 0, 0.95, 0); skirt.material.side = THREE.DoubleSide;
+    const tendrils = buildTendrils(vis, 7, 1.5, 5, 0.1, flesh, 0.25, 1.0);
+    const body = new THREE.Group(); body.position.y = 2.05; vis.add(body);
     const torso = mesh(new THREE.SphereGeometry(0.75, 16, 12), flesh, body); torso.scale.set(1, 1.2, 0.82);
     for (let i = 0; i < 14; i++) mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.09, 6, 5), bloom, body, (Math.random() - 0.5) * 1.1, (Math.random() - 0.3) * 1.1, -0.3 - Math.random() * 0.3);
     // the heart: weak point
@@ -235,7 +236,7 @@ const Monsters = (() => {
     const heart = mesh(new THREE.SphereGeometry(0.24, 14, 12), heartMat, body, 0, 0.05, 0.6);
     heart.userData.zone = 'weak';
     const heartLight = new THREE.PointLight(0xff9a30, 1.3, 7, 2);
-    heartLight.position.set(0, 0.05, 0.9); body.add(heartLight);
+    heartLight.position.set(0, 2.1, 0.9); root.add(heartLight);   // on the root, not the body, so hiding the body never changes the light count
     // ribs lift away from the chest around it
     for (let i = 0; i < 6; i++) { const a = (i - 2.5) * 0.3; const rb = mesh(new THREE.TorusGeometry(0.38, 0.03, 5, 12, Math.PI), rag, body, 0, 0.05, 0.56); rb.rotation.set(0.2, 0, a + Math.PI / 2); rb.scale.set(1, 1.0, 1); }
     const neck = new THREE.Group(); neck.position.set(0, 0.95, 0.12); body.add(neck);
@@ -255,7 +256,7 @@ const Monsters = (() => {
       for (let c = 0; c < 3; c++) { const cl = mesh(new THREE.ConeGeometry(0.04, 0.4, 4), rag, el, (c - 1) * 0.06, -1.25, 0.03); cl.rotation.x = Math.PI + (c - 1) * 0.2; }
       return { sh, el };
     });
-    return { root, body, neck, arms, heart, heartLight, petals, skirt, tendrils, height: 3.3 };
+    return { root, vis, body, neck, arms, heart, heartLight, petals, skirt, tendrils, height: 3.3 };
   }
 
   // ---------- lifecycle ----------
@@ -436,7 +437,9 @@ const Monsters = (() => {
       if (m.state === 'dying') { animateDeath(m, dt); if (m.state === 'dead') { scene.remove(m.root); list.splice(i, 1); } continue; }
 
       const dx = P.pos.x - m.pos.x, dz = P.pos.z - m.pos.z, dist = Math.hypot(dx, dz);
-      const canSee = dist < m.T.sight && Level.lineOfSight(m.pos.x, m.pos.z, P.pos.x, P.pos.z);
+      const los = dist < 40 && Level.lineOfSight(m.pos.x, m.pos.z, P.pos.x, P.pos.z);
+      const canSee = dist < m.T.sight && los;
+      (m.parts.vis || m.root).visible = dist < 12 || (dist < 36 && los) || (m.type === 'matron' && m.aware);   // no point drawing what is behind a wall
 
       if (m.state === 'dormant') {
         if (dist < 4.2 && canSee && P.alive) wakeDormant(m);

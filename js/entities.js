@@ -84,9 +84,9 @@ const Entities = (() => {
   function makeDoor(def) {
     const tex = { moth: 'doorMoth', serpent: 'doorSerpent', crown: 'doorCrown', root: 'doorRoot' }[def.key] || 'door';
     const face = new THREE.MeshPhongMaterial({ map: Tex.get(tex), normalMap: Tex.getNormal(tex), shininess: 10 });
-    const edge = new THREE.MeshPhongMaterial({ map: Tex.get('frame'), normalMap: Tex.getNormal('frame') });
-    Shaders.patchWorld(face, { mould: 0.6 }); Shaders.patchWorld(edge, { mould: 0.6 });
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W - 0.04, DOOR_H - 0.03, 0.09), [edge, edge, edge, edge, face, face]);
+    Shaders.patchWorld(face, { mould: 0.6 });
+    // one material for the whole slab: a six-material box would cost six draw calls per door
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W - 0.04, DOOR_H - 0.03, 0.09), face);
     panel.position.set((DOOR_W - 0.04) / 2, (DOOR_H - 0.03) / 2, 0);
     panel.castShadow = true; panel.receiveShadow = true;
     const pivot = new THREE.Group();
@@ -130,7 +130,7 @@ const Entities = (() => {
   function phong(color, extra = {}) { return new THREE.MeshPhongMaterial({ color, shininess: 30, ...extra }); }
   function itemModel(type) {
     const g = new THREE.Group();
-    const add = (geo, m, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.castShadow = true; g.add(o); return o; };
+    const add = (geo, m, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.castShadow = false; g.add(o); return o; };
     if (type === 'ammo') {
       add(new THREE.BoxGeometry(0.3, 0.13, 0.2), phong(0x7a5a22), 0, 0.065, 0);
       add(new THREE.BoxGeometry(0.302, 0.05, 0.202), phong(0xc9a64e, { emissive: 0x2a1a05 }), 0, 0.09, 0);
@@ -223,6 +223,9 @@ const Entities = (() => {
   function updateItems(dt, time) {
     for (const it of items) {
       if (it.taken) continue;
+      const near = Math.hypot(it.x - Game.player.pos.x, it.z - Game.player.pos.z) < 26;
+      it.model.visible = it.glint.visible = near;
+      if (!near) continue;
       it.t += dt;
       const p = Math.max(0, Math.sin(it.t * 2.2));
       it.glint.scale.setScalar(0.08 + Math.pow(p, 6) * (it.type === 'gramophone' ? 0.3 : 0.42));

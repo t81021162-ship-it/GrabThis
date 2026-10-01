@@ -300,7 +300,7 @@ const Level = (() => {
   function box(w, h, d, material, x, y, z, scene, { cast = true, receive = true, collide = false } = {}) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
     m.position.set(x, y, z);
-    m.castShadow = cast; m.receiveShadow = receive;
+    m.castShadow = cast; m.receiveShadow = receive; m.userData.merge = true;
     m.updateMatrix(); m.matrixAutoUpdate = false;
     scene.add(m); staticMeshes.push(m);
     if (collide) addCollider({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h: y + h / 2 });
@@ -441,28 +441,29 @@ const Level = (() => {
       scene.add(mesh);
       const fr = new THREE.Mesh(new THREE.BoxGeometry(1.24, 1.58, 0.05), M('frame'));
       fr.position.copy(pos); fr.rotation.y = yaw; fr.rotation.z = mesh.rotation.z;
-      fr.translateZ(-0.03); scene.add(fr);
+      fr.translateZ(-0.03); fr.userData.merge = true; scene.add(fr);
     });
   }
 
   function buildWindows(scene) {
-    const moonTex = Tex.get('window'), roseTex = Tex.get('rose');
     const frameMat = M('frame');
+    const moonMat = new THREE.MeshBasicMaterial({ map: Tex.get('window'), color: 0x8a94aa, fog: true });
+    const roseMat = new THREE.MeshBasicMaterial({ map: Tex.get('rose'), color: 0x9a9aa8, fog: true });
+    glassMats.push({ mat: moonMat, base: 0.56 }, { mat: roseMat, base: 0.6 });
     for (const w of WINDOWS) {
       const rose = w.kind === 'rose';
       const W_ = rose ? 1.9 : 1.0, H_ = rose ? 1.9 : 1.5, cy = rose ? 2.05 : 1.75;
-      const mat = new THREE.MeshBasicMaterial({ map: rose ? roseTex : moonTex, color: rose ? 0x9a9aa8 : 0x8a94aa, fog: true });
-      glassMats.push({ mat, base: rose ? 0.6 : 0.56 });
+      const mat = rose ? roseMat : moonMat;
       const { pos, yaw } = wallSpot(w.x, w.y, w.side, 0.02);
       const g = new THREE.Mesh(new THREE.PlaneGeometry(W_, H_), mat);
-      g.position.set(pos.x, cy, pos.z); g.rotation.y = yaw; scene.add(g);
+      g.position.set(pos.x, cy, pos.z); g.rotation.y = yaw; g.userData.merge = true; scene.add(g);
       // a slim frame and sill so the window sits in the wall rather than on it
       const n = new THREE.Vector3(SIDE[w.side].n[0], 0, SIDE[w.side].n[2]);
       const sill = new THREE.Mesh(new THREE.BoxGeometry(W_ + 0.22, 0.07, 0.16), frameMat);
-      sill.position.set(pos.x, cy - H_ / 2 - 0.03, pos.z).addScaledVector(n, 0.06); sill.rotation.y = yaw; scene.add(sill);
+      sill.position.set(pos.x, cy - H_ / 2 - 0.03, pos.z).addScaledVector(n, 0.06); sill.rotation.y = yaw; sill.userData.merge = true; scene.add(sill);
       if (!rose) {
         const lintel = new THREE.Mesh(new THREE.BoxGeometry(W_ + 0.2, 0.08, 0.1), frameMat);
-        lintel.position.set(pos.x, cy + H_ / 2 + 0.03, pos.z).addScaledVector(n, 0.04); lintel.rotation.y = yaw; scene.add(lintel);
+        lintel.position.set(pos.x, cy + H_ / 2 + 0.03, pos.z).addScaledVector(n, 0.04); lintel.rotation.y = yaw; lintel.userData.merge = true; scene.add(lintel);
       }
       // a shaft of moonlight (or coloured glass light) falling into the room
       const tangent = new THREE.Vector3(-n.z, 0, n.x);
@@ -493,7 +494,7 @@ const Level = (() => {
     const put = (cx, cz, t, n) => {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(cx + t[0] * 0.45 + n[0] * 0.02, WALL_H - 0.45, cz + t[1] * 0.45 + n[1] * 0.02);
-      m.rotation.y = Math.atan2(-t[1], t[0]);
+      m.rotation.y = Math.atan2(-t[1], t[0]); m.userData.merge = true;
       scene.add(m);
     };
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -520,28 +521,29 @@ const Level = (() => {
       const fx = { def: L, sprites: [], glows: [] };
       const addFlame = (x, y, z, s) => {
         const fl = new THREE.Sprite(flameMat); fl.scale.set(0.16 * s, 0.26 * s, 1); fl.position.set(x, y, z); scene.add(fl); fx.sprites.push(fl);
-        const gl = new THREE.Sprite(glow); gl.scale.setScalar(0.9 * s); gl.position.set(x, y, z); scene.add(gl); fx.glows.push(gl);
+        if (!fx.glows.length) { const gl = new THREE.Sprite(glow); gl.scale.setScalar(1.5 * s); gl.position.set(x, y, z); scene.add(gl); fx.glows.push(gl); }
       };
+      const S = m => { m.userData.merge = true; return m; };
       if (L.fixture === 'candles') {
         for (let i = 0; i < 3; i++) {
           const ox = (i - 1) * 0.35, oz = (i % 2) * 0.12, baseY = L.y - 0.35;
           const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.22 + i * 0.05, 6), wax);
-          cyl.position.set(wx + ox, baseY + 0.11 + i * 0.025, wz + oz); scene.add(cyl);
+          cyl.position.set(wx + ox, baseY + 0.11 + i * 0.025, wz + oz); scene.add(S(cyl));
           addFlame(wx + ox, baseY + 0.32 + i * 0.05, wz + oz, 1);
         }
       } else if (L.fixture === 'chandelier') {
         const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.04, 6, 16), metal);
-        ring.rotation.x = Math.PI / 2; ring.position.set(wx, L.y, wz); scene.add(ring);
+        ring.rotation.x = Math.PI / 2; ring.position.set(wx, L.y, wz); scene.add(S(ring));
         const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, WALL_H - L.y, 4), metal);
-        chain.position.set(wx, L.y + (WALL_H - L.y) / 2, wz); scene.add(chain);
+        chain.position.set(wx, L.y + (WALL_H - L.y) / 2, wz); scene.add(S(chain));
         for (let i = 0; i < 6; i++) {
           const a = i / 6 * Math.PI * 2;
           if (i % 3 !== 1) addFlame(wx + Math.cos(a) * 0.7, L.y + 0.12, wz + Math.sin(a) * 0.7, 1);
         }
       } else if (L.fixture === 'sconce') {
         // a bracket on the wall with a single weak flame
-        const br = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.12), metal); br.position.set(wx, L.y - 0.18, wz); scene.add(br);
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.12, 6), wax); cup.position.set(wx, L.y - 0.08, wz); scene.add(cup);
+        const br = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.12), metal); br.position.set(wx, L.y - 0.18, wz); scene.add(S(br));
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.12, 6), wax); cup.position.set(wx, L.y - 0.08, wz); scene.add(S(cup));
         addFlame(wx, L.y + 0.06, wz, 0.8);
       } else if (L.fixture === 'tube') {
         const tm = new THREE.MeshBasicMaterial({ color: 0xd8ffe8 });
@@ -550,9 +552,9 @@ const Level = (() => {
         fx.tubeMat = tm;
       } else if (L.fixture === 'lamp') {
         const shade = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.3, 8, 1, true), new THREE.MeshPhongMaterial({ color: 0xc89048, emissive: 0x6a3a10, side: THREE.DoubleSide }));
-        shade.position.set(wx, L.y + 0.2, wz); scene.add(shade);
+        shade.position.set(wx, L.y + 0.2, wz); scene.add(S(shade));
         const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, WALL_H - L.y, 3), metal);
-        cord.position.set(wx, L.y + (WALL_H - L.y) / 2, wz); scene.add(cord);
+        cord.position.set(wx, L.y + (WALL_H - L.y) / 2, wz); scene.add(S(cord));
       }
       fixtures.push(fx);
     }
@@ -613,7 +615,7 @@ const Level = (() => {
       const d = fx.def;
       if (fx.tubeMat) fx.tubeMat.color.setScalar(d.k > 0.5 ? 0.85 : 0.15);
       fx.sprites.forEach((s, i) => { const q = 0.85 + 0.3 * Math.sin(time * 17 + i * 3.1) * Math.random(); s.scale.y = 0.26 * q * (s.scale.x / 0.16); });
-      fx.glows.forEach(g => { g.material.opacity = 0.35 + 0.35 * d.k; });
+      fx.glows.forEach(g => { g.scale.setScalar(1.5 * (0.9 + 0.2 * d.k)); });
     }
     for (const s of pool) {
       const target = s.def && !s.leaving ? 1 : 0;
@@ -621,6 +623,52 @@ const Level = (() => {
       if (s.leaving && s.fade < 0.03) { s.def = s.next; s.next = null; s.leaving = false; s.fade = 0; applyDef(s); }
       s.light.intensity = s.def ? s.def.base * 1.3 * s.def.k * s.fade * Game.lightDim * (s.def.scale || 1) : 0;
     }
+  }
+
+
+  // ---------- merge static props into a handful of meshes per room-sized chunk ----------
+  // Hundreds of tiny meshes (chairs, fungus, vines, frames) each cost a draw call. Anything flagged
+  // userData.merge is baked into one geometry per material and 12 m chunk, which keeps culling useful.
+  function mergeStatic(scene) {
+    scene.updateMatrixWorld(true);
+    const groups = new Map(), doomed = [];
+    scene.traverse(o => {
+      if (!o.isMesh || !o.userData.merge || Array.isArray(o.material) || !o.geometry.attributes.position) return;
+      const wp = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+      const key = [o.material.uuid, o.castShadow ? 1 : 0, o.receiveShadow ? 1 : 0, o.renderOrder, Math.floor(wp.x / 12), Math.floor(wp.z / 12)].join('|');
+      let g = groups.get(key);
+      if (!g) groups.set(key, g = { material: o.material, cast: o.castShadow, receive: o.receiveShadow, order: o.renderOrder, geos: [] });
+      const geo = o.geometry.clone();
+      geo.applyMatrix4(o.matrixWorld);
+      g.geos.push(geo); doomed.push(o);
+    });
+    for (const o of doomed) { if (o.parent) o.parent.remove(o); }
+    let before = doomed.length, after = 0;
+    for (const g of groups.values()) {
+      let nv = 0, ni = 0;
+      for (const geo of g.geos) { nv += geo.attributes.position.count; ni += geo.index ? geo.index.count : geo.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = new Uint32Array(ni);
+      let vo = 0, io = 0;
+      for (const geo of g.geos) {
+        const n = geo.attributes.position.count;
+        pos.set(geo.attributes.position.array, vo * 3);
+        if (geo.attributes.normal) nor.set(geo.attributes.normal.array, vo * 3);
+        if (geo.attributes.uv) uv.set(geo.attributes.uv.array, vo * 2);
+        if (geo.index) for (let i = 0; i < geo.index.count; i++) idx[io++] = geo.index.array[i] + vo;
+        else for (let i = 0; i < n; i++) idx[io++] = vo + i;
+        vo += n; geo.dispose();
+      }
+      const merged = new THREE.BufferGeometry();
+      merged.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      merged.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      merged.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      merged.setIndex(new THREE.BufferAttribute(idx, 1));
+      merged.computeBoundingSphere();
+      const m = new THREE.Mesh(merged, g.material);
+      m.castShadow = g.cast; m.receiveShadow = g.receive; m.renderOrder = g.order; m.matrixAutoUpdate = false;
+      scene.add(m); staticMeshes.push(m); after++;
+    }
+    return { before, after };
   }
 
   // window glass brightens with lightning
@@ -742,7 +790,7 @@ const Level = (() => {
   function setHot(i, x, z, r) { Shaders.worldUniforms.uHot.value[i].set(x, z, r); }
 
   return {
-    W, H, cells, at, doorDefs, staticMeshes, buildStatic, updateLights, collide, lineOfSight, walkLine, raycast,
+    W, H, cells, at, doorDefs, staticMeshes, buildStatic, mergeStatic, updateLights, collide, lineOfSight, walkLine, raycast,
     blocksMove, blocksSight, computeFlow, flowAt, floorAt, cellCenter, cellX, box, addCollider, M, C, setHot, setFlash,
     addLightDef, removeLightDef, lightDefs, wallSpot, THEMES,
   };
