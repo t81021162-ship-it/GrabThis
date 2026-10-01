@@ -21,7 +21,7 @@ const Player = (() => {
   const P = {
     pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 }, yaw: 0, pitch: 0,
     hp: 100, alive: true, noisy: false, running: false, aiming: false,
-    herbs: 0, keys: [], reserve: { ammo: 20, shells: 0 },
+    herbs: 0, keys: [], oil: false, carrying: false, reserve: { ammo: 20, shells: 0 },
     weapons: { pistol: { owned: true, mag: 10 }, shotgun: { owned: false, mag: 0 } },
     current: 'pistol', flashlight: true,
     invuln: 0, bob: 0, stepSide: 0, turnT: 0, turnFrom: 0,
@@ -96,7 +96,7 @@ const Player = (() => {
     const s = state.player;
     P.pos.x = s.x; P.pos.z = s.z; P.yaw = s.yaw; P.pitch = 0;
     P.vel.x = P.vel.z = 0;
-    P.hp = s.hp; P.alive = true; P.herbs = s.herbs; P.keys = [...s.keys];
+    P.hp = s.hp; P.alive = true; P.herbs = s.herbs; P.keys = [...s.keys]; P.oil = !!s.oil; P.carrying = !!s.carrying;
     P.reserve = { ...s.reserve };
     P.weapons = { pistol: { ...s.weapons.pistol }, shotgun: { ...s.weapons.shotgun } };
     P.current = s.current; P.flashlight = true;
@@ -107,7 +107,7 @@ const Player = (() => {
 
   function snapshot() {
     return {
-      x: P.pos.x, z: P.pos.z, yaw: P.yaw, hp: P.hp, herbs: P.herbs, keys: [...P.keys], reserve: { ...P.reserve },
+      x: P.pos.x, z: P.pos.z, yaw: P.yaw, hp: P.hp, herbs: P.herbs, keys: [...P.keys], oil: P.oil, carrying: P.carrying, reserve: { ...P.reserve },
       weapons: { pistol: { ...P.weapons.pistol }, shotgun: { ...P.weapons.shotgun } }, current: P.current,
     };
   }
@@ -118,6 +118,7 @@ const Player = (() => {
   function fire() {
     const W = WEAPONS[P.current], w = P.weapons[P.current];
     if (P.fireCd > 0 || P.switchT > 0) return;
+    if (P.carrying && P.current === 'shotgun') { if (!P.carryMsg || performance.now() - P.carryMsg > 2500) { UI.message('You cannot hold both Mara and the shotgun.', 'warn'); P.carryMsg = performance.now(); } return; }
     if (P.reloading) {
       if (P.current === 'shotgun' && w.mag > 0) P.reloading = false; // interrupt shell loading
       else return;
@@ -143,24 +144,24 @@ const Player = (() => {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
     const moving = Math.hypot(P.vel.x, P.vel.z) / 3;
-    const spread = (P.aiming ? W.spreadAim : W.spreadHip) * (1 + moving * 0.8);
+    const spread = (P.aiming ? W.spreadAim : W.spreadHip) * (1 + moving * 0.8) * (P.carrying ? 2.2 : 1);
     let hitSomething = false;
     for (let i = 0; i < W.pellets; i++) {
       const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * spread;
       const dir = base.clone().addScaledVector(right, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r).normalize();
       raycaster.set(origin, dir); raycaster.far = 70;
+      // the house is a grid, so walls are found by marching; only creatures need a real mesh test
+      const world = Level.raycast(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, 70);
       const hits = raycaster.intersectObjects(Game.shootables(), true);
-      const h = hits.find(x => x.object.visible !== false);
-      if (!h) continue;
-      const mon = h.object.userData.monster;
-      if (mon) {
+      const h = hits.find(x => x.object.visible !== false && (!world || x.distance < world.dist));
+      if (h) {
+        const mon = h.object.userData.monster;
         const falloff = W.pellets > 1 ? Math.max(0.3, Math.min(1, 1 - (h.distance - 4) / 14)) : 1;
-        Monsters.hurt(mon, W.dmg * falloff, h.object.userData.zone, dir, h.point);
-        hitSomething = true;
-      } else {
-        const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
-        Game.particles.emit(h.point.x + n.x * 0.05, h.point.y + n.y * 0.05, h.point.z + n.z * 0.05, W.pellets > 1 ? 2 : 6, 'spark', n);
-        if (i === 0) Sound.play('impact', h.point);
+        if (mon) { Monsters.hurt(mon, W.dmg * falloff, h.object.userData.zone, dir, h.point); hitSomething = true; }
+      } else if (world) {
+        const n = world.normal, pt = world.point;
+        Game.particles.emit(pt.x + n.x * 0.05, pt.y + n.y * 0.05, pt.z + n.z * 0.05, W.pellets > 1 ? 2 : 6, 'spark', n);
+        if (i === 0) Sound.play('impact', pt);
       }
     }
     if (hitSomething) Game.stats.hits++;
@@ -255,10 +256,11 @@ const Player = (() => {
     let mz = (K.KeyW ? 1 : 0) - (K.KeyS ? 1 : 0) - Input.stickY;
     const ml = Math.hypot(mx, mz);
     if (ml > 1) { mx /= ml; mz /= ml; }
-    P.aiming = Input.aim && P.switchT <= 0;
-    P.running = (K.ShiftLeft || K.ShiftRight || Input.runToggle || Math.hypot(Input.stickX, Input.stickY) > 0.95) && !P.aiming && mz > 0.2;
+    P.aiming = Input.aim && P.switchT <= 0 && !P.carrying;
+    P.running = (K.ShiftLeft || K.ShiftRight || Input.runToggle || Math.hypot(Input.stickX, Input.stickY) > 0.95) && !P.aiming && mz > 0.2 && !P.carrying;
     let speed = P.aiming ? 1.6 : P.running ? 4.7 : 2.9;
     if (P.hp < 30) speed *= 0.82;
+    if (P.carrying) speed = Math.min(speed, 3.3);
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
     const tvx = (fx * mz + rx * mx) * speed, tvz = (fz * mz + rz * mx) * speed;
     const a = 1 - Math.exp(-dt * 11);
@@ -354,7 +356,7 @@ const Player = (() => {
         else if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'PageUp') { e.preventDefault(); Game.scrollNote(-80); }
         return;
       }
-      if (e.code === 'Escape' || e.code === 'KeyP') { if (!Input.locked) Game.togglePause(); return; }
+      if (e.code === 'Escape' || e.code === 'KeyP') { if (!Input.locked) Game.onEscape(); return; }
       if (Game.mode !== 'playing') return;
       if (e.code === 'Space') { e.preventDefault(); Input.fire = true; }
       Input.keys[e.code] = true;

@@ -1,79 +1,76 @@
-/* Witherholm — doors, items, notes, decals. */
-
-const NOTES = {
-  intro: {
-    title: 'A torn letter',
-    body: `<p>If you are reading this, you came anyway. I asked you not to.</p>
-      <p>Lady Hollis calls the spores a gift. The servants stopped eating weeks ago and still they work, smiling, their eyes gone the colour of milk. At night I hear them standing in the halls.</p>
-      <p>The east wing is sealed with the <b>Moth key</b>. Cook hid it somewhere in the kitchen, through the dining room. The Lady keeps her own key in the study past the library.</p>
-      <p>Everything in this house leads to the chapel. Do not go to the chapel.</p>
-      <p class="sig">M.</p>`,
-  },
-  dining: {
-    title: 'Menu card',
-    body: `<p><b>Supper for fourteen.</b></p>
-      <p>First course: clear broth, the Lady's own.<br>Second course: clear broth.<br>Third course: clear broth.</p>
-      <p>Every plate is to be finished. Guests who decline are to be walked to the cellar and <span class="smear">given time to reconsider.</span></p>
-      <p class="smear">they are still down there. they are still reconsidering.</p>`,
-  },
-  kitchen: {
-    title: "Cook's notice",
-    body: `<p>DO NOT OPEN THE PANTRY.</p>
-      <p>Whatever is in the pantry is not Tomas any more. It still hums the song he used to hum. That is the worst of it.</p>
-      <p>I locked the east wing and left the Moth key on the work table where the Lady's people won't think to look. They don't look at anything now. They only listen.</p>
-      <p>If a bright light hits them they flinch. Aim for the head. They go down faster.</p>`,
-  },
-  library: {
-    title: 'Journal of Lady A. Hollis',
-    body: `<p>The Bloom does not kill. It <i>gathers</i>. Each body it takes becomes another room in a larger house, and every room remembers.</p>
-      <p>I have given it the servants, the gardener, the girl from the university. In return it has given me a second heart, bright as a lamp, beating in the middle of me.</p>
-      <p>The Serpent key opens the chapel. I keep it on my desk in the study, beside the gun my husband never learned to use.</p>`,
-  },
-  study: {
-    title: "Mara's last page",
-    body: `<p>She is in the chapel. She is not a woman any more. She is a garden.</p>
-      <p>The glowing thing in her chest is the heart of it. When I hit it with the fire poker she <i>screamed</i>, and every wall in the house screamed with her.</p>
-      <p>She wears the Crown key on a chain. It opens the front door. Take it from her and leave.</p>
-      <p>Don't look for me. Look at the walls instead. I'm already part of them.</p>
-      <p class="sig">M.</p>`,
-  },
-};
+/* Witherholm — doors, items, notes, decals. Notes live in story.js. */
 
 const ITEM_TYPES = {
   ammo: { label: 'Pistol rounds', verb: 'Take' },
   shells: { label: 'Shotgun shells', verb: 'Take' },
   herb: { label: 'Ashroot herb', verb: 'Take' },
   shotgun: { label: 'Hollowell 12-gauge', verb: 'Take' },
+  oil: { label: 'flask of lamp oil', verb: 'Take' },
   key_moth: { label: 'Moth key', verb: 'Take', key: 'moth' },
   key_serpent: { label: 'Serpent key', verb: 'Take', key: 'serpent' },
   key_crown: { label: 'Crown key', verb: 'Take', key: 'crown' },
-  note: { label: 'Note', verb: 'Read' },
+  note: { label: 'note', verb: 'Read' },
+  gramophone: { label: 'gramophone', verb: 'Wind the', permanent: true },
 };
 
-// x, y are grid cells. Items on a table cell sit on the table.
+// x, y are grid cells. Items on a table or pedestal cell sit on top of it.
 const ITEM_DEFS = [
-  { id: 'note_intro', type: 'note', note: 'intro', x: 21, y: 27, pedestal: true },
+  // foyer
+  { id: 'note_arrival', type: 'note', note: 'arrival', x: 21, y: 27, pedestal: true },
   { id: 'ammo_foyer', type: 'ammo', x: 15, y: 20 },
+  { id: 'gramo_foyer', type: 'gramophone', x: 17, y: 28, pedestal: true },
+  // dining room
   { id: 'herb_dining', type: 'herb', x: 4, y: 19 },
   { id: 'ammo_dining', type: 'ammo', x: 12, y: 27 },
   { id: 'note_dining', type: 'note', note: 'dining', x: 7, y: 23 },
+  { id: 'note_mara1', type: 'note', note: 'mara1', x: 11, y: 19, pedestal: true },
+  // kitchen
   { id: 'key_moth', type: 'key_moth', x: 8, y: 13 },
   { id: 'ammo_kitchen', type: 'ammo', x: 12, y: 11 },
   { id: 'note_kitchen', type: 'note', note: 'kitchen', x: 4, y: 10 },
+  { id: 'note_mara2', type: 'note', note: 'mara2', x: 11, y: 10 },
+  // pantry
+  { id: 'oil', type: 'oil', x: 8, y: 8 },
+  { id: 'note_recipe', type: 'note', note: 'recipe', x: 5, y: 6 },
+  { id: 'ammo_pantry', type: 'ammo', x: 9, y: 7 },
+  { id: 'shells_pantry', type: 'shells', x: 4, y: 7 },
+  // hall and closet
   { id: 'herb_hall', type: 'herb', x: 18, y: 10 },
   { id: 'ammo_hall', type: 'ammo', x: 21, y: 10 },
-  { id: 'ammo_closet', type: 'ammo', x: 24, y: 15 },
+  { id: 'ammo_closet', type: 'ammo', x: 25, y: 16 },
   { id: 'herb_closet', type: 'herb', x: 25, y: 14 },
   { id: 'shells_closet', type: 'shells', x: 23, y: 16 },
+  { id: 'note_fenwick', type: 'note', note: 'fenwick', x: 23, y: 14 },
+  { id: 'gramo_closet', type: 'gramophone', x: 25, y: 15, pedestal: true },
+  // library
   { id: 'ammo_lib', type: 'ammo', x: 36, y: 19 },
   { id: 'herb_lib', type: 'herb', x: 27, y: 19 },
   { id: 'shells_lib', type: 'shells', x: 36, y: 28 },
   { id: 'note_library', type: 'note', note: 'library', x: 32, y: 24, pedestal: true },
+  { id: 'note_mara3', type: 'note', note: 'mara3', x: 27, y: 26, pedestal: true },
+  // conservatory
+  { id: 'note_wren1', type: 'note', note: 'wren1', x: 47, y: 16, pedestal: true },
+  { id: 'note_wren2', type: 'note', note: 'wren2', x: 47, y: 21, pedestal: true },
+  { id: 'herb_cons1', type: 'herb', x: 38, y: 12 },
+  { id: 'herb_cons2', type: 'herb', x: 47, y: 12 },
+  { id: 'herb_cons3', type: 'herb', x: 38, y: 24 },
+  { id: 'shells_cons', type: 'shells', x: 47, y: 24 },
+  { id: 'ammo_cons', type: 'ammo', x: 43, y: 17 },
+  // study
   { id: 'shotgun', type: 'shotgun', x: 31, y: 7 },
   { id: 'key_serpent', type: 'key_serpent', x: 32, y: 7 },
   { id: 'note_study', type: 'note', note: 'study', x: 29, y: 6, pedestal: true },
+  { id: 'note_hollis2', type: 'note', note: 'hollis2', x: 35, y: 6, pedestal: true },
   { id: 'ammo_study', type: 'ammo', x: 28, y: 12 },
   { id: 'herb_study', type: 'herb', x: 35, y: 12 },
+  { id: 'shells_study', type: 'shells', x: 34, y: 12 },
+  // chapel
+  { id: 'note_altar', type: 'note', note: 'altar', x: 19, y: 1 },
+  { id: 'ammo_chapel', type: 'ammo', x: 13, y: 8 },
+  { id: 'shells_chapel', type: 'shells', x: 25, y: 8 },
+  { id: 'herb_chapel', type: 'herb', x: 25, y: 1 },
+  // the cellar
+  { id: 'note_root', type: 'note', note: 'root', x: 8, y: 2, pedestal: true },
 ];
 
 const Entities = (() => {
@@ -85,9 +82,9 @@ const Entities = (() => {
 
   // ---------- doors ----------
   function makeDoor(def) {
-    const tex = { moth: 'doorMoth', serpent: 'doorSerpent', crown: 'doorCrown' }[def.key] || 'door';
-    const face = new THREE.MeshPhongMaterial({ map: Tex.get(tex), shininess: 10 });
-    const edge = new THREE.MeshPhongMaterial({ map: Tex.get('frame') });
+    const tex = { moth: 'doorMoth', serpent: 'doorSerpent', crown: 'doorCrown', root: 'doorRoot' }[def.key] || 'door';
+    const face = new THREE.MeshPhongMaterial({ map: Tex.get(tex), normalMap: Tex.getNormal(tex), shininess: 10 });
+    const edge = new THREE.MeshPhongMaterial({ map: Tex.get('frame'), normalMap: Tex.getNormal('frame') });
     Shaders.patchWorld(face, { mould: 0.6 }); Shaders.patchWorld(edge, { mould: 0.6 });
     const panel = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W - 0.04, DOOR_H - 0.03, 0.09), [edge, edge, edge, edge, face, face]);
     panel.position.set((DOOR_W - 0.04) / 2, (DOOR_H - 0.03) / 2, 0);
@@ -145,6 +142,11 @@ const Entities = (() => {
       const leaf = phong(0x5a7a34, { emissive: 0x0f1a05 });
       for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(new THREE.ConeGeometry(0.04, 0.28, 4), leaf, Math.cos(a) * 0.04, 0.26, Math.sin(a) * 0.04, Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4); }
       add(new THREE.SphereGeometry(0.035, 6, 5), phong(0xd8c870, { emissive: 0x4a4010 }), 0, 0.4, 0);
+    } else if (type === 'oil') {
+      add(new THREE.CylinderGeometry(0.075, 0.09, 0.22, 10), phong(0xe0a030, { emissive: 0x5a3208, transparent: true, opacity: 0.9, shininess: 90, specular: 0xffffff }), 0, 0.11, 0);
+      add(new THREE.CylinderGeometry(0.03, 0.05, 0.08, 8), phong(0xc8d8d0, { transparent: true, opacity: 0.6 }), 0, 0.26, 0);
+      add(new THREE.CylinderGeometry(0.035, 0.035, 0.04, 8), phong(0x5a3a1a), 0, 0.32, 0);
+      add(new THREE.BoxGeometry(0.16, 0.002, 0.12), phong(0xd8ccaa), 0, 0.12, 0.09, 0.3, 0, 0);
     } else if (type === 'shotgun') {
       const metal = phong(0x2a2a2c, { specular: 0x666666, shininess: 60 }), wood = phong(0x5a3418);
       add(new THREE.CylinderGeometry(0.025, 0.025, 0.8, 8), metal, 0.1, 0.05, 0, 0, 0, Math.PI / 2);
@@ -162,6 +164,15 @@ const Entities = (() => {
     } else if (type === 'note') {
       const p = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.36), new THREE.MeshPhongMaterial({ map: Tex.get('paper'), side: THREE.DoubleSide }));
       p.rotation.x = -Math.PI / 2; p.rotation.z = 0.3; p.position.y = 0.006; p.receiveShadow = true; g.add(p);
+    } else if (type === 'gramophone') {
+      const wood = phong(0x4a2a16, { shininess: 40 }), brass = phong(0x7a5e26, { shininess: 50, specular: 0x887744 });
+      add(new THREE.BoxGeometry(0.42, 0.2, 0.42), wood, 0, 0.1, 0);
+      add(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 20), phong(0x111111, { shininess: 100 }), 0, 0.21, 0);
+      add(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 5), brass, 0.12, 0.32, 0.1, 0, 0, 0.5);
+      const horn = add(new THREE.CylinderGeometry(0.3, 0.03, 0.55, 14, 1, true), Object.assign(brass.clone(), { side: THREE.DoubleSide }), -0.05, 0.52, -0.05, 0.25, 0, -0.45);
+      horn.castShadow = true;
+      const arm = add(new THREE.BoxGeometry(0.2, 0.012, 0.012), brass, 0.06, 0.24, 0.05, 0, 0.7, 0);
+      g.userData.disc = g.children[1]; g.userData.arm = arm;
     }
     return g;
   }
@@ -197,8 +208,9 @@ const Entities = (() => {
     scene.add(model);
     const glint = new THREE.Sprite(glintMat);
     glint.position.set(wx, wy + 0.3, wz); glint.scale.setScalar(0.3);
+    if (type === 'gramophone') glint.position.y = wy + 0.9;
     scene.add(glint);
-    const item = { id: def.id, def, type, x: wx, z: wz, y: wy, model, glint, taken: false, t: Math.random() * 6 };
+    const item = { id: def.id, def, type, x: wx, z: wz, y: wy, model, glint, taken: false, t: Math.random() * 6, playing: 0 };
     items.push(item);
     return item;
   }
@@ -213,9 +225,14 @@ const Entities = (() => {
       if (it.taken) continue;
       it.t += dt;
       const p = Math.max(0, Math.sin(it.t * 2.2));
-      it.glint.scale.setScalar(0.08 + Math.pow(p, 6) * 0.42);
+      it.glint.scale.setScalar(0.08 + Math.pow(p, 6) * (it.type === 'gramophone' ? 0.3 : 0.42));
       it.glint.material.rotation = time * 0.5;
       if (it.type.startsWith('key_')) it.model.rotation.y += dt * 0.8;
+      if (it.type === 'gramophone' && it.playing > 0) {
+        it.playing -= dt;
+        it.model.userData.disc.rotation.y += dt * 5;
+        it.model.userData.arm.rotation.y = 0.9 + Math.sin(time) * 0.03;
+      }
     }
   }
 
@@ -254,7 +271,7 @@ const Entities = (() => {
       const door = makeDoor(def);
       if (state.opened.includes(def.id)) openDoor(door, 0, 0, true);
     }
-    for (const def of ITEM_DEFS) if (!state.taken.includes(def.id)) spawnItem(def);
+    for (const def of ITEM_DEFS) if (def.type === 'gramophone' || !state.taken.includes(def.id)) spawnItem(def);
     for (const drop of state.drops || []) if (!state.taken.includes(drop.id)) spawnItem({ id: drop.id, type: drop.type }, drop);
   }
 

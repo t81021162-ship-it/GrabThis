@@ -28,9 +28,10 @@ float wh_noise(vec3 x) {
 
 const Shaders = (() => {
   // shared by every patched world material
+  // up to four places where the Bloom is thick: x, z, radius (0 = unused). Main moves these as the story goes on.
   const worldUniforms = {
     uTime: { value: 0 },
-    uInfect: { value: new THREE.Vector2(0, 0) },
+    uHot: { value: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)] },
   };
 
   // ---------- 1. post-processing ----------
@@ -46,6 +47,15 @@ const Shaders = (() => {
         uFade: { value: 0 },
         uRed: { value: 0 },
         uWarp: { value: 0 },
+        uFlash: { value: 0 },
+        uBloom: { value: 0.5 },
+        uLevels: { value: 0 },
+        uDither: { value: 0 },
+        uGrain: { value: 0.04 },
+        uScan: { value: 0.03 },
+        uCA: { value: 1 },
+        uBarrel: { value: 0.05 },
+        uTint: { value: new THREE.Vector3(1, 1, 1) },
       },
       depthTest: false, depthWrite: false,
       vertexShader: /* glsl */`
@@ -55,55 +65,72 @@ const Shaders = (() => {
       fragmentShader: /* glsl */`
         uniform sampler2D tDiffuse;
         uniform vec2 uRes;
-        uniform float uTime, uDamage, uLow, uBeat, uFade, uRed, uWarp;
+        uniform float uTime, uDamage, uLow, uBeat, uFade, uRed, uWarp, uFlash, uBloom, uLevels, uDither, uGrain, uScan, uCA, uBarrel;
+        uniform vec3 uTint;
         varying vec2 vUv;
 
         float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453); }
         float bayer2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }
         float bayer4(vec2 a) { return bayer2(0.5 * a) * 0.25 + bayer2(a); }
 
+        // soft glow from anything bright: three rings of eight taps
+        vec3 bloom(vec2 uv, float aspect) {
+          vec3 acc = vec3(0.0);
+          for (int i = 0; i < 8; i++) {
+            float a = float(i) * 0.785398 + 0.39;
+            vec2 o = vec2(cos(a) / aspect, sin(a));
+            acc += max(texture2D(tDiffuse, uv + o * 0.004).rgb - 0.50, 0.0) * 0.45;
+            acc += max(texture2D(tDiffuse, uv + o * 0.012).rgb - 0.45, 0.0) * 0.35;
+            acc += max(texture2D(tDiffuse, uv + o * 0.030).rgb - 0.40, 0.0) * 0.30;
+          }
+          return acc / 8.0;
+        }
+
         void main() {
           vec2 cc = vUv - 0.5;
           float r2 = dot(cc, cc);
+          float aspect = uRes.x / uRes.y;
 
           // lens barrel + a sickly wobble when badly hurt or when the boss screams
           float wob = (uLow * 0.004 + uWarp * 0.012) * sin(uTime * 2.3 + vUv.y * 9.0);
-          vec2 uv = 0.5 + cc * (1.0 + 0.085 * r2) + vec2(wob, 0.0);
+          vec2 uv = 0.5 + cc * (1.0 + uBarrel * r2) + vec2(wob, 0.0);
 
           // chromatic aberration grows toward the edges and when hit
-          float ab = (0.0012 + uDamage * 0.012 + uLow * 0.003 + uWarp * 0.01) * (0.4 + r2 * 3.0);
+          float ab = (0.0008 * uCA + uDamage * 0.012 + uLow * 0.003 + uWarp * 0.01) * (0.4 + r2 * 3.0);
           vec2 dir = normalize(cc + 1e-5);
           vec3 col;
           col.r = texture2D(tDiffuse, uv + dir * ab).r;
           col.g = texture2D(tDiffuse, uv).g;
           col.b = texture2D(tDiffuse, uv - dir * ab).b;
 
+          col += bloom(uv, aspect) * uBloom;
+
           // colour grade: cold desaturated shadows, dirty warm highlights
           float l = dot(col, vec3(0.299, 0.587, 0.114));
-          col = mix(vec3(l), col, 0.8 - uLow * 0.45);
-          col = mix(col * vec3(0.86, 1.0, 0.96), col * vec3(1.08, 1.0, 0.86), smoothstep(0.05, 0.6, l));
+          col = mix(vec3(l), col, 0.86 - uLow * 0.45);
+          col = mix(col * vec3(0.88, 1.0, 0.97), col * vec3(1.08, 1.0, 0.88), smoothstep(0.05, 0.6, l));
           col = pow(max(col, 0.0), vec3(0.95));
+          col *= uTint;
+          col += vec3(0.10, 0.13, 0.20) * uFlash;
 
           // vignette, pulsing with the heartbeat when low
-          float vig = smoothstep(0.95, 0.25, length(cc * vec2(1.15, 1.0)) * (1.25 + uLow * 0.3 + uBeat * uLow * 0.25));
-          col *= mix(0.25, 1.0, vig);
+          float vig = smoothstep(0.98, 0.25, length(cc * vec2(1.1, 1.0)) * (1.22 + uLow * 0.3 + uBeat * uLow * 0.25));
+          col *= mix(0.3, 1.0, vig);
 
           // blood at the edges when taking damage
           float edge = 1.0 - vig;
           col = mix(col, vec3(0.55, 0.0, 0.02), clamp(uDamage * 0.9 + uLow * uBeat * 0.35, 0.0, 1.0) * edge);
           col = mix(col, col * vec3(1.2, 0.25, 0.2), uRed);
 
-          // film grain in low-res pixel space
+          // film grain and faint scanlines
           vec2 px = floor(vUv * uRes);
-          col += (rand(px + fract(uTime * 13.7)) - 0.5) * 0.075;
-
-          // faint scanlines and a rolling bar
-          col *= 0.93 + 0.07 * sin(vUv.y * uRes.y * 3.14159);
+          col += (rand(px + fract(uTime * 13.7)) - 0.5) * uGrain;
+          col *= 1.0 - uScan + uScan * sin(vUv.y * uRes.y * 3.14159);
           col *= 1.0 - 0.035 * smoothstep(0.0, 0.08, abs(fract(vUv.y * 0.5 - uTime * 0.05) - 0.5));
 
-          // ordered dither + colour quantisation
-          float levels = 30.0;
-          col = floor(col * levels + bayer4(px)) / levels;
+          // ordered dither (strong in retro mode, a whisper otherwise) + optional palette crunch
+          col += (bayer4(px) - 0.5) / 255.0;
+          if (uLevels > 0.5) col = floor(col * uLevels + bayer4(px) * uDither) / uLevels;
 
           // outside the lens stays black
           if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) col = vec3(0.0);
@@ -118,17 +145,18 @@ const Shaders = (() => {
   function patchWorld(mat, { mould = 1 } = {}) {
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = worldUniforms.uTime;
-      shader.uniforms.uInfect = worldUniforms.uInfect;
+      shader.uniforms.uHot = worldUniforms.uHot;
       shader.uniforms.uMould = { value: mould };
       shader.vertexShader = 'varying vec3 vWPos;\n' + shader.vertexShader.replace(
         '#include <project_vertex>',
         '#include <project_vertex>\n vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;'
       );
-      shader.fragmentShader = 'uniform float uTime; uniform vec2 uInfect; uniform float uMould; varying vec3 vWPos;\n' + GLSL_NOISE +
+      shader.fragmentShader = 'uniform float uTime; uniform vec3 uHot[4]; uniform float uMould; varying vec3 vWPos;\n' + GLSL_NOISE +
         shader.fragmentShader.replace('#include <emissivemap_fragment>', /* glsl */`
           #include <emissivemap_fragment>
           {
-            float infect = smoothstep(34.0, 3.0, distance(vWPos.xz, uInfect));
+            float infect = 0.0;
+            for (int i = 0; i < 4; i++) { vec3 h = uHot[i]; infect = max(infect, (1.0 - smoothstep(3.0, max(h.z, 3.1), distance(vWPos.xz, h.xy))) * step(0.5, h.z)); }
             float m = wh_noise(vWPos * 0.7) * 0.6 + wh_noise(vWPos * 2.1 + 7.0) * 0.4;
             float th = 0.64 - infect * 0.24;
             float mould = smoothstep(th, th + 0.12, m) * uMould;
@@ -252,7 +280,7 @@ const Shaders = (() => {
         void main() {
           vC = pcolor;
           vec4 mv = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = psize <= 0.0 ? 0.0 : max(1.0, psize * uScale / -mv.z);
+          gl_PointSize = psize <= 0.0 ? 0.0 : clamp(psize * uScale / -mv.z, 1.0, 12.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -280,6 +308,7 @@ const Shaders = (() => {
         p.grav = kind === 'spark' ? 6 : 11;
         if (kind === 'spark') { p.r = 1.0; p.g = 0.65 + Math.random() * 0.3; p.b = 0.25; p.s = 0.03; }
         else if (kind === 'spore') { p.r = 0.75; p.g = 0.68; p.b = 0.25; p.s = 0.04; p.grav = -0.4; p.life = 1.5 + Math.random(); p.vx *= 0.3; p.vy *= 0.3; p.vz *= 0.3; }
+        else if (kind === 'ember') { p.r = 1.0; p.g = 0.45 + Math.random() * 0.3; p.b = 0.08; p.s = 0.03; p.grav = -2.5; p.life = 1.2 + Math.random() * 1.4; p.vx *= 0.4; p.vz *= 0.4; p.vy = Math.abs(p.vy) * 0.6 + 0.5; }
         else if (kind === 'dust') { p.r = 0.35; p.g = 0.33; p.b = 0.3; p.s = 0.05; p.grav = 1; }
         else { const v = 0.25 + Math.random() * 0.2; p.r = v; p.g = 0.01; p.b = 0.02; p.s = 0.035 + Math.random() * 0.04; }
       }
@@ -306,5 +335,99 @@ const Shaders = (() => {
     return { points: pts, emit, update, clear, material: mat };
   }
 
-  return { worldUniforms, makePostMaterial, patchWorld, makeFleshUniforms, patchFlesh, makeDust, makeParticles };
+
+  // ---------- 6. low-lying mist ----------
+  function makeMist({ texture, color = 0x8899aa, opacity = 0.25, scale = 0.25, speed = 0.02 }) {
+    return new THREE.ShaderMaterial({
+      uniforms: { tMap: { value: texture }, uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uOpacity: { value: opacity }, uScale: { value: scale }, uSpeed: { value: speed } },
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: /* glsl */`
+        varying vec2 vUv; varying vec3 vW;
+        void main() { vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }
+      `,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tMap; uniform float uTime, uOpacity, uScale, uSpeed; uniform vec3 uColor;
+        varying vec2 vUv; varying vec3 vW;
+        void main() {
+          vec2 p = vW.xz * uScale;
+          float a = texture2D(tMap, p + vec2(uTime * uSpeed, uTime * uSpeed * 0.6)).a;
+          float b = texture2D(tMap, p * 1.7 - vec2(uTime * uSpeed * 0.8, -uTime * uSpeed * 0.5) + 0.37).a;
+          float m = smoothstep(0.25, 0.85, (a + b) * 0.6);
+          float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x) * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
+          float near = smoothstep(0.4, 3.0, length(vW - cameraPosition));
+          gl_FragColor = vec4(uColor, m * edge * near * uOpacity);
+        }
+      `,
+    });
+  }
+
+  // ---------- 7. light shafts (additive, fade along their length) ----------
+  function makeShaft({ color = 0x88aaff, intensity = 0.25 }) {
+    return new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uIntensity: { value: intensity }, uFlash: { value: 0 } },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      vertexShader: /* glsl */`
+        varying vec2 vUv; varying vec3 vW;
+        void main() { vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }
+      `,
+      fragmentShader: /* glsl */`
+        uniform float uTime, uIntensity, uFlash; uniform vec3 uColor;
+        varying vec2 vUv; varying vec3 vW;
+        float h(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+        float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+        void main() {
+          float along = pow(1.0 - vUv.y, 1.25);
+          float side = smoothstep(0.0, 0.3, vUv.x) * smoothstep(1.0, 0.7, vUv.x);
+          float dust = 0.6 + 0.4 * n(vec2(vUv.x * 5.0 + uTime * 0.03, vUv.y * 4.0 - uTime * 0.05));
+          float near = smoothstep(0.3, 2.2, length(vW - cameraPosition));
+          float a = (uIntensity + uFlash * 0.5) * along * side * dust * near;
+          gl_FragColor = vec4(uColor, a);
+        }
+      `,
+    });
+  }
+
+  // ---------- 8. glowing spores that only hang in infected air ----------
+  function makeSpores(count = 260) {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3), seed = new Float32Array(count);
+    for (let i = 0; i < count; i++) { pos[i * 3] = Math.random(); pos[i * 3 + 1] = Math.random(); pos[i * 3 + 2] = Math.random(); seed[i] = Math.random(); }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uCenter: { value: new THREE.Vector3() }, uBox: { value: new THREE.Vector3(18, 3.4, 18) }, uScale: { value: 200 }, uHot: worldUniforms.uHot },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: /* glsl */`
+        attribute float seed;
+        uniform float uTime, uScale; uniform vec3 uCenter, uBox; uniform vec3 uHot[4];
+        varying float vA;
+        void main() {
+          vec3 p = position * uBox;
+          p += vec3(sin(uTime * 0.23 + seed * 50.0) * 0.8, uTime * (0.05 + seed * 0.08), cos(uTime * 0.19 + seed * 31.0) * 0.8);
+          vec3 base = vec3(uCenter.x - uBox.x * 0.5, 0.0, uCenter.z - uBox.z * 0.5);
+          p = base + mod(p - base, uBox);
+          float infect = 0.0;
+          for (int i = 0; i < 4; i++) { vec3 h = uHot[i]; infect = max(infect, (1.0 - smoothstep(3.0, max(h.z, 3.1), distance(p.xz, h.xy))) * step(0.5, h.z)); }
+          float tw = 0.6 + 0.4 * sin(uTime * 2.0 + seed * 40.0);
+          vA = infect * tw * 0.85;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = max(1.0, (0.03 + seed * 0.035) * uScale / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */`
+        varying float vA;
+        void main() {
+          float r = length(gl_PointCoord - 0.5);
+          if (r > 0.5) discard;
+          gl_FragColor = vec4(vec3(0.95, 0.85, 0.3) * vA * (1.0 - r * 1.7), 1.0);
+        }
+      `,
+    });
+    const pts = new THREE.Points(geo, mat);
+    pts.frustumCulled = false;
+    return pts;
+  }
+
+  return { worldUniforms, makePostMaterial, patchWorld, makeFleshUniforms, patchFlesh, makeDust, makeParticles, makeMist, makeShaft, makeSpores };
 })();

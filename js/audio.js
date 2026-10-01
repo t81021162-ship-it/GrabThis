@@ -2,6 +2,14 @@
    Every sound in the game is synthesised here with the Web Audio API:
    no sample files, so there is nothing copyrighted to ship. */
 
+// Mother's song: E minor, three-four, one beat per entry
+const LULLABY = [
+  [329.63, 0], [392.0, 1], [493.88, 2], [440.0, 3], [392.0, 4], [329.63, 5],
+  [369.99, 6], [440.0, 7], [523.25, 8], [493.88, 9], [440.0, 10], [369.99, 11],
+  [392.0, 12], [493.88, 13], [587.33, 14], [523.25, 15], [493.88, 16], [392.0, 17],
+  [329.63, 18], [369.99, 19], [329.63, 20], [293.66, 21], [329.63, 23],
+];
+
 const Sound = (() => {
   let ctx = null;
   let master, sfxBus, ambBus, musicBus, noiseBuf;
@@ -108,7 +116,14 @@ const Sound = (() => {
     const lfo2 = ctx.createOscillator(); lfo2.frequency.value = 0.11;
     const lfo2G = ctx.createGain(); lfo2G.gain.value = 180; lfo2.connect(lfo2G); lfo2G.connect(bp.frequency); lfo2.start();
     air.connect(bp); bp.connect(airG); airG.connect(ambBus); air.start();
-    droneNodes = { out, oscs, lfo, air };
+    // rain on the roof and windows
+    const rain = ctx.createBufferSource(); rain.buffer = noiseBuf; rain.loop = true; rain.playbackRate.value = 1.3;
+    const rhp = ctx.createBiquadFilter(); rhp.type = 'highpass'; rhp.frequency.value = 1700;
+    const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 7000;
+    const rainG = ctx.createGain(); rainG.gain.value = 0.022;
+    const rlfo = ctx.createOscillator(); rlfo.frequency.value = 0.05; const rlfoG = ctx.createGain(); rlfoG.gain.value = 0.008; rlfo.connect(rlfoG); rlfoG.connect(rainG.gain); rlfo.start();
+    rain.connect(rhp); rhp.connect(rlp); rlp.connect(rainG); rainG.connect(ambBus); rain.start();
+    droneNodes = { out, oscs, lfo, air, rain };
   }
 
   function ambientEvent(listenerPos) {
@@ -315,6 +330,58 @@ const Sound = (() => {
       for (let i = 0; i < 9; i++) tone({ t: t + Math.random() * 0.3, freq: 2500 + Math.random() * 3500, dur: 0.15 + Math.random() * 0.3, type: 'triangle', peak: 0.08, dest: d });
       noise({ t, dur: 0.35, type: 'highpass', freq: 3000, peak: 0.3, dest: d });
     },
+    thunder() {
+      const t = now();
+      noise({ t, dur: 0.4, type: 'bandpass', freq: 1800, q: 0.7, peak: 0.55, attack: 0.003, sweep: 200 });
+      noise({ t: t + 0.05, dur: 3.4, type: 'lowpass', freq: 260, q: 1, peak: 0.85, attack: 0.15, sweep: 40 });
+      tone({ t, freq: 52, to: 26, dur: 2.6, type: 'sawtooth', peak: 0.3, attack: 0.15, filter: { freq: 140, q: 1 } });
+    },
+    // Mother's song, hummed very low and a little flat. Tomas does not know he is doing it.
+    hum(pos) {
+      const d = spatial(pos), t = now(), beat = 0.62;
+      LULLABY.slice(0, 13).forEach(([f, b], i) => {
+        const tt = t + b * beat, fr = f * 0.5 * 0.985;
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(fr, tt); o.frequency.linearRampToValueAtTime(fr * 1.01, tt + beat);
+        const vib = ctx.createOscillator(); vib.frequency.value = 5.2; const vg = ctx.createGain(); vg.gain.value = fr * 0.012; vib.connect(vg); vg.connect(o.frequency);
+        const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 420; f1.Q.value = 4;
+        const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 900; f2.Q.value = 6;
+        const g = ctx.createGain(); env(g, tt, 0.12, 0.3, beat * 0.95);
+        o.connect(f1); o.connect(f2); f1.connect(g); f2.connect(g); g.connect(d);
+        o.start(tt); vib.start(tt); o.stop(tt + beat * 1.2); vib.stop(tt + beat * 1.2);
+      });
+    },
+    // the gramophone: the same tune on a music box, with a little crackle
+    lullaby(pos, warp = 0) {
+      const d = spatial(pos), t = now(), beat = 0.52;
+      const crack = noise({ t, dur: LULLABY.length * beat + 1, type: 'highpass', freq: 3500, peak: 0.03, attack: 0.3, dest: d, rate: 0.4 });
+      LULLABY.forEach(([f, b], i) => {
+        const tt = t + 0.3 + b * beat, fr = f * (1 + (warp ? Math.sin(i * 1.7) * 0.012 * warp : 0));
+        for (const [mul, pk] of [[1, 0.22], [2.76, 0.07], [5.4, 0.03]]) tone({ t: tt, freq: fr * mul, dur: 1.5 / Math.sqrt(mul), type: 'sine', peak: pk, attack: 0.004, dest: d });
+      });
+    },
+    whisper(len = 2.2) {
+      const t = now(), pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; pan.connect(sfxBus); }
+      const dest = pan || sfxBus;
+      const words = Math.max(2, Math.round(len * 1.6));
+      for (let i = 0; i < words; i++) {
+        const tt = t + i * (len / words) + Math.random() * 0.05, dur = 0.12 + Math.random() * 0.22;
+        const n = noise({ t: tt, dur, type: 'bandpass', freq: 1600 + Math.random() * 1600, q: 4, peak: 0.16, attack: 0.03, dest });
+        n.f.frequency.setValueAtTime(1300 + Math.random() * 500, tt);
+        n.f.frequency.linearRampToValueAtTime(2200 + Math.random() * 1400, tt + dur);
+        noise({ t: tt, dur, type: 'bandpass', freq: 700, q: 3, peak: 0.05, attack: 0.03, dest });
+      }
+    },
+    hiss(pos) { const d = spatial(pos); noise({ dur: 0.7, type: 'highpass', freq: 3200, peak: 0.3, attack: 0.05, sweep: 7000, dest: d }); noise({ dur: 0.5, type: 'bandpass', freq: 900, q: 2, peak: 0.15, dest: d }); },
+    tick(pos) { const d = spatial(pos), t = now(); noise({ t, dur: 0.02, type: 'bandpass', freq: 3800, q: 6, peak: 0.35, dest: d }); noise({ t: t + 0.07, dur: 0.02, type: 'bandpass', freq: 3200, q: 6, peak: 0.28, dest: d }); },
+    spit(pos) { const d = spatial(pos); noise({ dur: 0.45, type: 'bandpass', freq: 500, q: 3, peak: 0.5, attack: 0.05, sweep: 2400, dest: d }); tone({ freq: 160, to: 420, dur: 0.4, type: 'sawtooth', peak: 0.2, dest: d, filter: { freq: 900, q: 2 } }); },
+    splat(pos) { const d = spatial(pos); noise({ dur: 0.2, type: 'lowpass', freq: 1400, q: 2, peak: 0.6, sweep: 200, dest: d }); noise({ dur: 0.12, type: 'bandpass', freq: 3000, q: 2, peak: 0.25, dest: d }); },
+    typeclick() { noise({ dur: 0.025, type: 'bandpass', freq: 2200 + Math.random() * 900, q: 5, peak: 0.18 }); },
+    crackle() { noise({ dur: 0.05 + Math.random() * 0.06, type: 'bandpass', freq: 600 + Math.random() * 2500, q: 1.5, peak: 0.12 + Math.random() * 0.2 }); },
+    rumble() { const t = now(); noise({ t, dur: 1.6, type: 'lowpass', freq: 160, q: 2, peak: 0.6, attack: 0.2, sweep: 50 }); tone({ t, freq: 42, to: 30, dur: 1.4, type: 'sawtooth', peak: 0.2, filter: { freq: 120 } }); },
+    whoosh() { const t = now(); noise({ t, dur: 1.4, type: 'bandpass', freq: 300, q: 0.8, peak: 0.6, attack: 0.15, sweep: 3000 }); noise({ t, dur: 1.8, type: 'lowpass', freq: 700, peak: 0.5, attack: 0.3, sweep: 120 }); },
+    grind(pos) { const d = spatial(pos), t = now(); noise({ t, dur: 2.6, type: 'lowpass', freq: 220, q: 3, peak: 0.6, attack: 0.3, sweep: 90, dest: d }); noise({ t, dur: 2.4, type: 'bandpass', freq: 900, q: 6, peak: 0.12, attack: 0.3, dest: d, rate: 0.5 }); tone({ t, freq: 55, to: 35, dur: 2.4, type: 'sawtooth', peak: 0.25, dest: d, filter: { freq: 110 } }); },
+    bell() { const t = now(); for (const [m, pk] of [[1, 0.3], [2.4, 0.12], [4.1, 0.06]]) tone({ t, freq: 196 * m, dur: 4.5 / Math.sqrt(m), type: 'sine', peak: pk, attack: 0.005 }); },
     victory() {
       const t = now();
       [261.63, 311.13, 392, 466.16, 523.25].forEach((f, i) => tone({ t: t + i * 0.35, freq: f, dur: 2.5, type: 'triangle', peak: 0.1, attack: 0.3 }));
