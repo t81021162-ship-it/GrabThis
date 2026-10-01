@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Witherholm</title>
+<meta name="description" content="A small first-person survival horror game made with HTML, CSS, JavaScript and WebGL shaders.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&family=VT323&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game">
+  <div id="view"></div>
+
+  <!-- In-game HUD -->
+  <div id="hud" hidden>
+    <div id="objective"></div>
+    <div id="keys"></div>
+    <div id="bossbar" hidden>
+      <div class="boss-name">THE MATRON</div>
+      <div class="boss-track"><div id="bossfill"></div></div>
+    </div>
+    <div id="timer" hidden><div id="timer-label"></div><div id="timer-val"></div></div>
+    <div id="crosshair"><span></span></div>
+    <div id="subtitle" hidden></div>
+    <div id="chapter" hidden><div class="ch-num"></div><h2></h2><p></p></div>
+    <div id="messages"></div>
+    <div id="prompt" hidden></div>
+    <div id="vitals">
+      <canvas id="ecg" width="200" height="56"></canvas>
+      <div id="condition">STABLE</div>
+    </div>
+    <div id="weapon">
+      <div class="ammo"><span id="mag">10</span><span class="sep">/</span><span id="reserve">20</span></div>
+      <div id="wname">Service Pistol</div>
+      <div id="herbs"></div>
+    </div>
+    <div id="saved" hidden>Progress recorded</div>
+  </div>
+
+  <!-- Touch controls (shown on touch screens) -->
+  <div id="touch" hidden>
+    <div id="stick"><div id="knob"></div></div>
+    <div id="lookpad"></div>
+    <button class="tbtn" id="t-fire" type="button">FIRE</button>
+    <button class="tbtn" id="t-aim" type="button">AIM</button>
+    <button class="tbtn small" id="t-use" type="button">USE</button>
+    <button class="tbtn small" id="t-reload" type="button">RELOAD</button>
+    <button class="tbtn small" id="t-run" type="button">RUN</button>
+    <button class="tbtn small" id="t-turn" type="button">TURN</button>
+    <button class="tbtn small" id="t-swap" type="button">SWAP</button>
+    <button class="tbtn small" id="t-herb" type="button">HERB</button>
+    <button class="tbtn small" id="t-light" type="button">LIGHT</button>
+    <button class="tbtn tiny" id="t-pause" type="button" aria-label="Pause">II</button>
+  </div>
+
+  <!-- Title screen -->
+  <section id="title" class="screen">
+    <div class="title-inner">
+      <p class="eyebrow">A survival horror in one house</p>
+      <h1>Witherholm</h1>
+      <p class="lede">Three weeks ago your sister Mara took a post at Witherholm, a house out on the moor. Her last letter was one line long. You brought the lamp.</p>
+      <button id="btn-start" class="btn" type="button">Enter the house</button>
+      <div class="controls">
+        <div><kbd>W A S D</kbd> move</div>
+        <div><kbd>Mouse</kbd> look &middot; <kbd>Click</kbd> shoot</div>
+        <div><kbd>Right click</kbd> aim &middot; <kbd>R</kbd> reload</div>
+        <div><kbd>E</kbd> interact &middot; <kbd>Shift</kbd> run</div>
+        <div><kbd>Q</kbd> quick turn &middot; <kbd>F</kbd> flashlight</div>
+        <div><kbd>1</kbd>/<kbd>2</kbd> weapons &middot; <kbd>H</kbd> use herb</div>
+      </div>
+      <p class="fine" id="title-endings"></p>
+      <p class="fine">Best with headphones. Sound starts when you enter.</p>
+      <p class="fine portrait-hint">Turn your phone sideways for the best view.</p>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="pause" class="screen" hidden>
+    <div class="panel">
+      <h2>Paused</h2>
+      <label class="row" for="opt-sens">Look sensitivity <input id="opt-sens" type="range" min="0.3" max="2.5" step="0.05" value="1"></label>
+      <label class="row" for="opt-vol">Volume <input id="opt-vol" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+      <label class="row" for="opt-look">Look
+        <select id="opt-look">
+          <option value="cinematic" selected>Cinematic</option>
+          <option value="retro">Retro 1998</option>
+        </select>
+      </label>
+      <label class="row" for="opt-res">Detail
+        <select id="opt-res">
+          <option value="240">Chunky (240p)</option>
+          <option value="360">Soft (360p)</option>
+          <option value="540" selected>Sharp (540p)</option>
+          <option value="720">Crisp (720p)</option>
+        </select>
+      </label>
+      <label class="row" for="opt-invert">Invert look <input id="opt-invert" type="checkbox"></label>
+      <div class="btns">
+        <button id="btn-resume" class="btn" type="button">Resume</button>
+        <button id="btn-files" class="btn ghost" type="button">Files</button>
+        <button id="btn-restart" class="btn ghost" type="button">Restart from checkpoint</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files -->
+  <section id="files" class="screen" hidden>
+    <div class="panel">
+      <h2>Files</h2>
+      <p id="files-count" class="fine"></p>
+      <div id="files-list"></div>
+      <div class="btns"><button id="btn-files-close" class="btn ghost" type="button">Back</button></div>
+    </div>
+  </section>
+
+  <!-- The choice at the Root -->
+  <section id="choice" class="screen" hidden>
+    <div class="panel choice">
+      <p class="eyebrow">The Root</p>
+      <h2>Mara</h2>
+      <p>She breathes inside it, held up by grey roots the colour of old candles. The whole house is breathing with her. It is waiting to see what you will do.</p>
+      <div id="choice-options"></div>
+    </div>
+  </section>
+
+  <!-- Intro -->
+  <section id="intro" class="screen" hidden>
+    <div class="intro-inner">
+      <div id="intro-text"></div>
+      <p class="skip">Click or press any key. Esc skips.</p>
+    </div>
+  </section>
+
+  <!-- Note reader -->
+  <section id="note" class="screen" hidden>
+    <article class="paper">
+      <h3 id="note-title"></h3>
+      <div id="note-body"></div>
+      <div class="note-foot">
+        <button id="btn-note-close" class="btn ghost" type="button">Put it down</button>
+        <p class="close-hint">E or Esc to close &middot; scroll or arrow keys to read on</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- Death -->
+  <section id="dead" class="screen" hidden>
+    <div class="panel center">
+      <h2 class="blood" id="dead-title">The Bloom takes you</h2>
+      <p id="dead-text">Your body joins the house.</p>
+      <div class="btns">
+        <button id="btn-retry" class="btn" type="button">Try again from checkpoint</button>
+        <button id="btn-newgame" class="btn ghost" type="button">Start over</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Win -->
+  <section id="win" class="screen" hidden>
+    <div class="panel center ending">
+      <p class="eyebrow" id="end-kicker">Dawn</p>
+      <h2 id="end-title"></h2>
+      <div id="end-text"></div>
+      <p id="win-stats"></p>
+      <p class="fine" id="end-found"></p>
+      <div class="btns">
+        <button id="btn-again" class="btn" type="button">Play again</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="loading" class="screen" hidden><p>Loading the house&hellip;</p></div>
+  <div id="error" class="screen" hidden><div class="panel center"><h2>Could not start</h2><p id="error-text"></p></div></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/shaders.js"></script>
+<script src="js/story.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/level.js"></script>
+<script src="js/props.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/monsters.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
