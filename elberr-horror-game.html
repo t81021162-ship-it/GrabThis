@@ -51,6 +51,12 @@ body.touch .k-desk{display:none}
 .check{display:flex;align-items:center;gap:8px;color:var(--dim);min-height:32px}
 .check input{width:20px;height:20px}
 
+.ed{border:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.ed summary{cursor:pointer;color:var(--note);letter-spacing:.06em;min-height:28px;display:flex;align-items:center}
+.ed[open] summary{margin-bottom:10px}
+.ed output{color:var(--fg);float:right;letter-spacing:0}
+input[type=range]{width:100%;accent-color:var(--note);min-height:32px;margin:0}
+input[type=text]{background:#0d1014;color:var(--fg);border:1px solid var(--line);padding:10px;font:inherit;font-size:14px;min-height:42px;width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text;border-radius:0;margin-bottom:8px}
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
 #hud .tl{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));top:calc(16px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px;text-shadow:0 0 6px #000;max-width:60%}
 #hud .tl .obj{color:var(--note)}
@@ -141,6 +147,27 @@ body.touch .k-desk{display:none}
   <div class="grid" id="g-mind"></div>
   <h2>Game</h2>
   <div class="grid" id="g-game"></div>
+  <details id="speechEd" class="ed">
+    <summary>Speech editor: pitch, speed, effects</summary>
+    <div class="grid">
+      <label>Pitch <output id="oPitch"></output><input id="tPitch" type="range" min="0" max="2" step="0.05"></label>
+      <label>Speed <output id="oRate"></output><input id="tRate" type="range" min="0.2" max="2" step="0.05"></label>
+      <label>Volume <output id="oVol"></output><input id="tVol" type="range" min="0" max="1" step="0.05"></label>
+      <label>Wobble <output id="oWobble"></output><input id="tWobble" type="range" min="0" max="1.5" step="0.05"></label>
+      <label>Stutter <output id="oStutter"></output><input id="tStutter" type="range" min="0" max="1" step="0.05"></label>
+      <label>Word pause <output id="oGap"></output><input id="tGap" type="range" min="0" max="600" step="10"></label>
+      <label>Effect
+        <select id="tFx">
+          <option value="none">None</option><option value="echo">Echo</option><option value="stretch">Stretch vowels</option>
+          <option value="broken">Broken</option><option value="spell">Choppy</option><option value="shout">Shout</option>
+        </select>
+      </label>
+      <label>Browser voice <select id="tVoice"><option value="auto">Auto (best match)</option></select></label>
+    </div>
+    <p class="keys">Some phone voices ignore pitch. If a slider changes nothing, try another browser voice.</p>
+    <input id="tText" type="text" value="I can hear you breathing." maxlength="140" aria-label="Line to speak">
+    <div class="row"><button id="tSay" type="button">Speak it</button><button id="tReset" type="button">Reset to preset</button></div>
+  </details>
   <label class="check"><input type="checkbox" id="ttsOn" checked> Speak lines out loud (text to speech)</label>
   <p class="keys k-desk"><b>WASD</b> move &middot; <b>Mouse</b> look &middot; <b>Shift</b> sprint &middot; <b>F</b> flashlight &middot; <b>P</b> pause. Arrow keys also look around.</p>
   <p class="keys k-touch"><b>Left thumb</b> move &middot; <b>drag right side</b> look &middot; <b>RUN</b> sprint &middot; <b>LIGHT</b> flashlight. Use headphones and turn the sound up.</p>
@@ -177,7 +204,7 @@ const OPTIONS=[
   {k:'eyes',label:'Eye glow',grp:'g-look',o:[['red','Red'],['green','Green'],['blue','Ice blue'],['yellow','Yellow'],['white','White'],['void','Void (none)']]},
   {k:'mouth',label:'Mouth',grp:'g-look',o:[['grin','Wide grin'],['void','Gaping void'],['stitched','Stitched'],['needle','Needle teeth']]},
   {k:'body',label:'Body',grp:'g-look',o:[['cables','Cable skeleton'],['rust','Rusted frame'],['chrome','Chrome plating'],['wrap','Black cable wrap']]},
-  {k:'voice',label:'Voice',grp:'g-mind',o:[['calm','Calm'],['glitch','Deep glitch'],['child','Child'],['whisper','Whisper'],['manic','Manic']]},
+  {k:'voice',label:'Voice',grp:'g-mind',o:[['calm','Calm'],['glitch','Deep glitch'],['child','Child'],['whisper','Whisper'],['manic','Manic'],['demon','Demon echo'],['chipmunk','Chipmunk'],['broken','Broken doll'],['warble','Warble'],['drone','Slow drone'],['counter','Counting robot'],['melting','Melting']]},
   {k:'persona',label:'Personality',grp:'g-mind',o:[['polite','Polite'],['hateful','Hateful'],['childlike','Childlike'],['logical','Logical']]},
   {k:'obsession',label:'Obsession',grp:'g-mind',o:[['friendship','Friendship'],['math','Mathematics'],['teeth','Teeth'],['silence','Silence']]},
   {k:'behavior',label:'Behavior',grp:'g-game',o:[['stalker','Stalker'],['sprinter','Sprinter'],['teleporter','Teleporter'],['lurker','Lurker']]},
@@ -187,10 +214,17 @@ const cfg={name:'E.L.B.E.R.R',head:'doll',eyes:'red',mouth:'grin',body:'cables',
 
 const VOICES={
   calm:{pitch:.75,rate:.82,vol:1,pref:'m'},
-  glitch:{pitch:.15,rate:.72,vol:1,pref:'m',stutter:true},
+  glitch:{pitch:.15,rate:.72,vol:1,pref:'m',wobble:.15,stutter:.5},
   child:{pitch:1.9,rate:1.05,vol:1,pref:'f'},
   whisper:{pitch:.9,rate:.7,vol:.45,pref:'f'},
-  manic:{pitch:1.35,rate:1.35,vol:1,pref:'m'}
+  manic:{pitch:1.35,rate:1.35,vol:1,pref:'m',wobble:.5,stutter:.2},
+  demon:{pitch:0,rate:.55,vol:1,pref:'m',wobble:.1,fx:'echo'},
+  chipmunk:{pitch:2,rate:1.6,vol:1,pref:'f',wobble:.2},
+  broken:{pitch:1,rate:.9,vol:1,pref:'f',wobble:1,stutter:.3,gap:120,fx:'broken'},
+  warble:{pitch:1,rate:1,vol:1,pref:'m',wobble:1.2},
+  drone:{pitch:.05,rate:.4,vol:1,pref:'m'},
+  counter:{pitch:.6,rate:.9,vol:1,pref:'m',gap:150,fx:'spell'},
+  melting:{pitch:.4,rate:.6,vol:1,pref:'m',wobble:.3,fx:'stretch'}
 };
 const EYECOL={red:0xff1a1a,green:0x2dff6e,blue:0x66ccff,yellow:0xffd21a,white:0xffffff,void:null};
 const BEHAV={
@@ -643,19 +677,30 @@ const Aud={ctx:null,master:null,noise:null,servoG:null,servoPan:null,
 
 /* ---------- speech ---------- */
 const subEl=document.getElementById('sub');
-let subTimer=0,talkToken=0,talking=false,talkEnd=0;
-function stutter(s){
-  const w=s.split(' ');const idx=[];w.forEach((x,i)=>{if(x.replace(/\W/g,'').length>2)idx.push(i)});
-  if(!idx.length)return s;const i=idx[(Math.random()*idx.length)|0],x=w[i],l=x[0];
-  w[i]=l+'-'+l+'-'+x;return w.join(' ');
+let subTimer=0,talkToken=0,talking=false;
+const tune={pitch:.75,rate:.82,vol:1,wobble:0,stutter:0,gap:0,fx:'none',voice:'auto',pref:'m'};
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function applyFx(text,fx,stut){
+  let t=text;
+  if(stut>0)t=t.split(' ').map(x=>{if(x.replace(/\W/g,'').length>2&&Math.random()<stut){const l=x[0];return l+'-'+l+'-'+x}return x}).join(' ');
+  if(fx==='echo'){const ws=t.split(' '),last=ws[ws.length-1].replace(/[.!?]+$/,'');t+=' '+last+'... '+last+'...'}
+  else if(fx==='stretch')t=t.replace(/[aeiou]/gi,m=>Math.random()<.4?m+m+m:m);
+  else if(fx==='broken')t=t.split(' ').map(x=>Math.random()<.25?x+'...':(Math.random()<.1?x+' '+x:x)).join(' ');
+  else if(fx==='spell')t=t.replace(/[.,!?]/g,'').split(' ').join(', ');
+  else if(fx==='shout')t=t.toUpperCase().replace(/\./g,'!');
+  return t;
 }
 const Speech={
   on:true,prio:0,last:{},lastLine:{},voices:[],
-  load(){if('speechSynthesis' in window)this.voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang))},
-  pickVoice(pref){
+  load(){
+    if('speechSynthesis' in window)this.voices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+    if(window.__uiReady)fillVoiceSelect();
+  },
+  pickVoice(){
     const v=this.voices;if(!v.length)return null;
+    if(tune.voice!=='auto'){const f=v.find(x=>x.name===tune.voice);if(f)return f}
     const m=/(david|daniel|alex|fred|mark|george|james|male|guy|ryan)/i,f=/(zira|samantha|karen|susan|female|hazel|aria|jenny|google us)/i;
-    return v.find(x=>(pref==='m'?m:f).test(x.name))||v[0];
+    return v.find(x=>(tune.pref==='m'?m:f).test(x.name))||v[0];
   },
   line(cat){
     const pool=(PERSONA[cfg.persona][cat]||[]).concat((OBS[cfg.obsession]||{})[cat]||[]);
@@ -671,11 +716,18 @@ const Speech={
     this.last[cat]=now;this.speak(text,prio);return true;
   },
   speak(text,prio){
-    this.prio=prio;const vp=VOICES[cfg.voice],token=++talkToken;
+    this.prio=prio;const token=++talkToken;
     subEl.hidden=false;subEl.innerHTML='<span class="who"></span><span class="txt"></span>';
     subEl.querySelector('.who').textContent=cfg.name;subEl.querySelector('.txt').textContent=text;
     clearTimeout(subTimer);
-    const est=Math.max(2.2,text.length*.085/vp.rate)*1000;
+    let t=text.split(cfg.name).join(cfg.name.replace(/\./g,' '));
+    t=applyFx(t,tune.fx,tune.stutter);
+    let parts=[t];
+    if(tune.wobble>0||tune.gap>0){
+      const ws=t.split(/\s+/);parts=[];
+      for(let i=0;i<ws.length;i+=2)parts.push(ws.slice(i,i+2).join(' '));
+    }
+    const est=Math.max(2.2,t.length*.085/Math.max(.2,tune.rate))*1000+parts.length*tune.gap;
     subTimer=setTimeout(()=>{if(token===talkToken)subEl.hidden=true},est+1200);
     talking=true;
     const end=()=>{if(token===talkToken)talking=false};
@@ -683,13 +735,20 @@ const Speech={
     if(!this.on||!('speechSynthesis' in window))return;
     try{
       speechSynthesis.cancel();
-      let t=text.split(cfg.name).join(cfg.name.replace(/\./g,' '));
-      if(vp.stutter&&Math.random()<.6)t=stutter(t);
-      const u=new SpeechSynthesisUtterance(t);
-      const v=this.pickVoice(vp.pref);if(v)u.voice=v;
-      u.pitch=vp.pitch;u.rate=vp.rate;u.volume=vp.vol;
-      u.onend=end;u.onerror=end;
-      window.__utt=u;speechSynthesis.speak(u);
+      const voice=this.pickVoice();
+      const next=i=>{
+        if(token!==talkToken)return;
+        if(i>=parts.length){end();return}
+        const u=new SpeechSynthesisUtterance(parts[i]);
+        if(voice)u.voice=voice;
+        u.pitch=clamp(tune.pitch+(Math.random()*2-1)*tune.wobble,0,2);
+        u.rate=clamp(tune.rate*(1+(Math.random()-.5)*tune.wobble*.6),.1,3);
+        u.volume=clamp(tune.vol,0,1);
+        u.onend=()=>{if(tune.gap>0)setTimeout(()=>next(i+1),tune.gap);else next(i+1)};
+        u.onerror=end;
+        window.__utt=u;speechSynthesis.speak(u);
+      };
+      next(0);
     }catch(e){}
   },
   stop(){try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(e){}talking=false;talkToken++;subEl.hidden=true}
@@ -1059,6 +1118,7 @@ OPTIONS.forEach(op=>{
     cfg[op.k]=s.value;
     if(op.k==='name')$('title').textContent=cfg.name;
     if(['name','head','eyes','mouth','body'].includes(op.k))placeNewRobot(STAGE);
+    if(op.k==='voice')loadPreset(cfg.voice);
     if(['persona','obsession','voice','name'].includes(op.k)){Speech.on=$('ttsOn').checked;Speech.stop();Speech.speak(Speech.line('intro'),2)}
   });
   l.appendChild(s);$(op.grp).appendChild(l);
@@ -1067,11 +1127,46 @@ $('ttsOn').addEventListener('change',()=>{Speech.on=$('ttsOn').checked;if(!Speec
 $('btnVoice').addEventListener('click',()=>{Speech.on=$('ttsOn').checked;Speech.stop();Speech.speak(Speech.line('intro'),2)});
 $('btnRand').addEventListener('click',()=>{
   OPTIONS.forEach(op=>{if(op.k==='name'||op.k==='difficulty')return;const v=op.o[(Math.random()*op.o.length)|0][0];cfg[op.k]=v;$('sel-'+op.k).value=v});
-  placeNewRobot(STAGE);Speech.on=$('ttsOn').checked;Speech.stop();Speech.speak(Speech.line('intro'),2);
+  loadPreset(cfg.voice);placeNewRobot(STAGE);Speech.on=$('ttsOn').checked;Speech.stop();Speech.speak(Speech.line('intro'),2);
 });
 $('btnGo').addEventListener('click',startGame);
 $('btnRetry').addEventListener('click',startGame);
 $('btnMenu').addEventListener('click',toMenu);
+
+/* ---------- speech editor ---------- */
+const TUNE_FIELDS=[['tPitch','pitch','oPitch',2],['tRate','rate','oRate',2],['tVol','vol','oVol',2],['tWobble','wobble','oWobble',2],['tStutter','stutter','oStutter',2],['tGap','gap','oGap',0]];
+function syncTuneUI(){
+  TUNE_FIELDS.forEach(([id,k,out,dp])=>{$(id).value=tune[k];$(out).textContent=(+tune[k]).toFixed(dp)+(k==='gap'?' ms':'')});
+  $('tFx').value=tune.fx;
+}
+function loadPreset(name){
+  const v=VOICES[name];if(!v)return;
+  Object.assign(tune,{pitch:v.pitch,rate:v.rate,vol:v.vol,pref:v.pref,wobble:v.wobble||0,stutter:v.stutter||0,gap:v.gap||0,fx:v.fx||'none'});
+  syncTuneUI();
+}
+function fillVoiceSelect(){
+  const sel=$('tVoice'),cur=tune.voice;
+  sel.innerHTML='';
+  const a=document.createElement('option');a.value='auto';a.textContent='Auto (best match)';sel.appendChild(a);
+  Speech.voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name;sel.appendChild(o)});
+  sel.value=Array.from(sel.options).some(o=>o.value===cur)?cur:'auto';
+}
+TUNE_FIELDS.forEach(([id,k,out,dp])=>{
+  $(id).addEventListener('input',()=>{tune[k]=parseFloat($(id).value);$(out).textContent=tune[k].toFixed(dp)+(k==='gap'?' ms':'')});
+});
+$('tFx').addEventListener('change',()=>{tune.fx=$('tFx').value});
+$('tVoice').addEventListener('change',()=>{tune.voice=$('tVoice').value});
+function sayCustom(){
+  Speech.on=$('ttsOn').checked;Speech.stop();
+  Speech.speak($('tText').value.trim()||'I can hear you breathing.',2);
+}
+$('tSay').addEventListener('click',sayCustom);
+$('tText').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')sayCustom()});
+$('tText').addEventListener('keyup',e=>e.stopPropagation());
+$('tReset').addEventListener('click',()=>loadPreset(cfg.voice));
+window.__uiReady=true;
+fillVoiceSelect();
+loadPreset(cfg.voice);
 
 /* ---------- play loop ---------- */
 const _v=new THREE.Vector3(),_f=new THREE.Vector3(),_d=new THREE.Vector3();
