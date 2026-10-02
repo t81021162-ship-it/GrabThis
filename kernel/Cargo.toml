@@ -1,0 +1,28 @@
+[package]
+name = "claude-os-kernel"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+x86 = "0.52"
+linked_list_allocator = "0.10"
+
+[[bin]]
+name = "kernel"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 0
+panic = "abort"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Ensure we link with the bootloader
+[package.metadata.bootimage]
+run-command = ["qemu-system-i386", "-drive", "format=raw,file={}"]

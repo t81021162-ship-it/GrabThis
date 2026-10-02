@@ -1,0 +1,6 @@
+[build]
+target = "i686-unknown-uefi"
+
+[target.i686-unknown-uefi]
+runner = "bootimage runner"
+rustflags = ["-C", "relocation-model=pic", "-C", "target-feature=+soft-float"]
