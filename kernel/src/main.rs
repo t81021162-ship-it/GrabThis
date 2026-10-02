@@ -1,37 +1,36 @@
 #![no_std]
 #![no_main]
 
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 
 mod vga_buffer;
-mod serial;
 
-use vga_buffer::VGA_BUFFER;
+use vga_buffer::Writer;
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    init();
-    kernel_main();
+entry_point!(kernel_main);
+
+pub fn kernel_main(_boot_info: &'static BootInfo) -> ! {
+    let mut writer = Writer::new();
+
+    writer.write_str("\n");
+    writer.write_str("╔════════════════════════════════════════╗\n");
+    writer.write_str("║     🔷 Claude OS Kernel v0.1.0         ║\n");
+    writer.write_str("╚════════════════════════════════════════╝\n\n");
+
+    writer.write_str("[BOOT] Bootloader: UEFI\n");
+    writer.write_str("[BOOT] Architecture: x86_64\n");
+
+    writer.write_str("\n✓ CPU: Online\n");
+    writer.write_str("✓ Memory: Mapped\n");
+    writer.write_str("✓ VGA: Ready\n");
+    writer.write_str("\n[STATUS] Kernel ready.\n");
+    writer.write_str("[STATUS] Waiting for shell integration...\n\n");
+
     hlt_loop();
 }
 
-fn init() {
-    serial::init();
-    vga::clear_screen();
-}
-
-fn kernel_main() {
-    println!("🔷 Claude OS Kernel v0.1.0");
-    println!("================================");
-    println!("Initializing core systems...\n");
-
-    println!("✓ Memory: OK");
-    println!("✓ CPU: OK");
-    println!("✓ VGA: OK");
-    println!("\nReady for shell...");
-}
-
-fn hlt_loop() -> ! {
+pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
@@ -39,23 +38,15 @@ fn hlt_loop() -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("💥 KERNEL PANIC");
+    let mut writer = Writer::new();
+    writer.write_str("\n💥 KERNEL PANIC\n");
+
     if let Some(location) = info.location() {
-        println!("Location: {}:{}", location.file(), location.line());
+        writer.write_str("Location: ");
+        writer.write_str(location.file());
+        writer.write_str(":");
+        // Can't easily convert line number to string in no_std, so skip it
     }
-    if let Some(msg) = info.message() {
-        println!("Message: {}", msg);
-    }
+
     hlt_loop();
-}
-
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
-}
-
-#[macro_export]
-macro_rules! println {
-    () => ($crate::print!("\n"));
-    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }

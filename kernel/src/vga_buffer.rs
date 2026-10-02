@@ -1,8 +1,8 @@
-use core::fmt;
-use spin::Mutex;
+use core::fmt::Write;
 
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
+const BUFFER_ADDRESS: usize = 0xb8000;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +55,14 @@ pub struct Writer {
 }
 
 impl Writer {
+    pub fn new() -> Self {
+        Writer {
+            column_position: 0,
+            color_code: ColorCode::new(Color::Green, Color::Black),
+            buffer: unsafe { &mut *(BUFFER_ADDRESS as *mut Buffer) },
+        }
+    }
+
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
@@ -75,11 +83,11 @@ impl Writer {
         }
     }
 
-    pub fn write_string(&mut self, s: &str) {
+    pub fn write_str(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
                 0x20..=0x7e | b'\n' => self.write_byte(byte),
-                _ => self.write_byte(0xfe), // fallback for non-printable
+                _ => self.write_byte(0xfe),
             }
         }
     }
@@ -113,28 +121,14 @@ impl Writer {
     }
 }
 
-impl fmt::Write for Writer {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.write_string(s);
+impl Write for Writer {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.write_str(s);
         Ok(())
     }
 }
 
-lazy_static::lazy_static! {
-    pub static ref VGA_BUFFER: Mutex<Writer> = {
-        Mutex::new(Writer {
-            column_position: 0,
-            color_code: ColorCode::new(Color::Green, Color::Black),
-            buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-        })
-    };
-}
-
 pub fn clear_screen() {
-    VGA_BUFFER.lock().clear_screen();
-}
-
-pub fn _print(args: fmt::Arguments) {
-    use core::fmt::Write;
-    VGA_BUFFER.lock().write_fmt(args).unwrap();
+    let mut writer = Writer::new();
+    writer.clear_screen();
 }

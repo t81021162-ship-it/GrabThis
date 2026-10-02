@@ -6,11 +6,8 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+bootloader = { version = "0.9", features = ["map_physical_memory"] }
 x86_64 = "0.15"
-uart_16550 = "0.8"
-spin = "0.12"
-log = "0.4"
-lazy_static = "1.4"
 
 [[bin]]
 name = "kernel"
@@ -18,8 +15,14 @@ path = "src/main.rs"
 
 [profile.dev]
 opt-level = 0
+panic = "abort"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
+panic = "abort"
+
+# Ensure we link with the bootloader
+[package.metadata.bootimage]
+run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]

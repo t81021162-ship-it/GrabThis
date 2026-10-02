@@ -1,32 +1,7 @@
-use uart_16550::SerialPort;
-use spin::Mutex;
-
-lazy_static::lazy_static! {
-    pub static ref SERIAL1: Mutex<SerialPort> = {
-        let mut serial_port = unsafe { SerialPort::new(0x3f8) };
-        serial_port.init();
-        Mutex::new(serial_port)
-    };
-}
+// Serial port support for debugging (stub for now)
+// Will be enhanced in Phase 2
 
 pub fn init() {
-    let _ = SERIAL1.lock();
-}
-
-#[macro_export]
-macro_rules! serial_print {
-    ($($arg:tt)*) => {
-        $crate::serial::_print(format_args!($($arg)*));
-    };
-}
-
-#[macro_export]
-macro_rules! serial_println {
-    () => ($crate::serial_print!("\n"));
-    ($($arg:tt)*) => ($crate::serial_print!("{}\n", format_args!($($arg)*)));
-}
-
-pub fn _print(args: core::fmt::Arguments) {
-    use core::fmt::Write;
-    SERIAL1.lock().write_fmt(args).unwrap();
+    // Serial initialization would go here
+    // For now, we rely on VGA buffer
 }

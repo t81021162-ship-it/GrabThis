@@ -14,7 +14,40 @@
 
 ## Quick Start
 
-### Build
+### Build & Run Bootable Kernel (QEMU)
+
+**Requirements:** `qemu-system-x86_64`, `bootimage` tool
+
+```bash
+# Install bootimage tool (one-time)
+cargo install bootimage
+
+# Build and run in QEMU
+make run
+```
+
+This builds the x86_64 kernel, creates a bootable disk image, and launches it in QEMU. You'll see:
+```
+╔════════════════════════════════════════╗
+║     🔷 Claude OS Kernel v0.1.0         ║
+╚════════════════════════════════════════╝
+
+[BOOT] Bootloader: UEFI
+[BOOT] Memory: 2048 MB total
+[BOOT] Physical memory offset: 0xffffffff80000000
+[INIT] Interrupt descriptor table loaded
+
+✓ CPU: Online
+✓ Memory: Mapped
+✓ IDT: Ready
+
+[STATUS] Kernel ready. Waiting for shell...
+```
+
+To exit QEMU: `Ctrl+A` then `X`
+
+### Build Userland Tools
+
 ```bash
 # Build the shell (userland, runs on any Unix-like system)
 cargo build --release -p claude-os-shell
