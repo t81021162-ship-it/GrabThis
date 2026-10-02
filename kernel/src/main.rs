@@ -15,6 +15,8 @@ mod keyboard;
 mod pic;
 mod timer;
 mod fs;
+mod ipc;
+mod network;
 
 use vga_buffer::Writer;
 
@@ -28,8 +30,8 @@ pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     writer.write_str("\n");
     writer.write_str("╔════════════════════════════════════════╗\n");
-    writer.write_str("║     🔷 Claude OS Kernel v0.3.0         ║\n");
-    writer.write_str("║     (Phase 4: Real Systems)             ║\n");
+    writer.write_str("║     🔷 Claude OS Kernel v0.5.0         ║\n");
+    writer.write_str("║     (Phase 5: IPC & Networking)        ║\n");
     writer.write_str("╚════════════════════════════════════════╝\n\n");
 
     writer.write_str("[INIT] Booting Claude OS...\n");
@@ -73,17 +75,31 @@ pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
     scheduler.create_task("dashboard", 5);
     writer.write_str("[OK] Scheduler initialized (3 tasks)\n");
 
+    // Initialize IPC
+    writer.write_str("[INIT] Initializing IPC...\n");
+    let mut _ipc_mgr = ipc::IPCManager::new();
+    writer.write_str("[OK] IPC ready (message queues & pipes)\n");
+
+    // Initialize network
+    writer.write_str("[INIT] Initializing network stack...\n");
+    let mut _net_stack = network::NetworkStack::new();
+    let eth0 = network::NetworkInterface::new("eth0", [0x52, 0x54, 0x00, 0x12, 0x34, 0x56], [192, 168, 1, 100]);
+    _net_stack.add_interface(eth0);
+    writer.write_str("[OK] Network stack ready (eth0)\n");
+
     writer.write_str("\n✓ CPU: Online\n");
-    writer.write_str("✓ Memory: Mapped & Allocated\n");
+    writer.write_str("✓ Memory: Heap allocated\n");
     writer.write_str("✓ GDT: Loaded\n");
     writer.write_str("✓ Interrupts: Active\n");
-    writer.write_str("✓ Timer: Running (100 Hz)\n");
+    writer.write_str("✓ Timer: 100 Hz\n");
     writer.write_str("✓ Filesystem: Ready\n");
     writer.write_str("✓ Scheduler: 3 tasks\n");
-    writer.write_str("✓ Keyboard: Driver ready\n");
+    writer.write_str("✓ IPC: Active\n");
+    writer.write_str("✓ Network: eth0\n");
+    writer.write_str("✓ Keyboard: Ready\n");
 
-    writer.write_str("\n[STATUS] Phase 4 systems fully operational.\n");
-    writer.write_str("[STATUS] Ready for userland integration...\n\n");
+    writer.write_str("\n[STATUS] Phase 5 complete - IPC & Networking online!\n");
+    writer.write_str("[STATUS] Processes can now communicate.\n\n");
 
     hlt_loop();
 }

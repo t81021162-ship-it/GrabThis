@@ -121,6 +121,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "claude-os-notepad"
+version = "0.1.0"
+
+[[package]]
 name = "claude-os-shell"
 version = "0.1.0"
 dependencies = [
