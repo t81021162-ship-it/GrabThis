@@ -10,6 +10,7 @@
 - 👀 **Transparent** — Every command shows what it's doing
 - 💾 **Persistent Journal** — Track tasks and thoughts
 - 📊 **Live Dashboard** — See system metrics in real-time
+- 🧠 **Cortex AI** — Transparent AI assistant (local + OpenRouter smart mode)
 - 🛠️ **Developer First** — Built by someone who understands what matters
 
 ## Quick Start
@@ -90,6 +91,32 @@ cargo run -p claude-os-journal -- add "Phase 1 complete"
 cargo run -p claude-os-journal -- list 10
 ```
 
+### Chat with Cortex (AI Assistant)
+```bash
+# Run Cortex with built-in knowledge
+cargo run -p cortex-os-assistant
+
+# Or with OpenRouter smart mode (for harder questions)
+OPENROUTER_API_KEY=your_key cargo run -p cortex-os-assistant
+```
+
+**Cortex's modes:**
+- **Local Mode:** Fast answers from built-in knowledge
+  ```
+  cortex> hello
+  cortex> who are you
+  cortex> what can you do
+  cortex> status
+  ```
+
+- **Smart Mode:** Use OpenRouter for complex questions (requires API key)
+  ```
+  cortex> ask smartly explain quantum computing
+  cortex> ask smartly how do I optimize Rust code
+  ```
+
+Cortex is transparent about its knowledge limits and shows you when it's using OpenRouter!
+
 ## Architecture
 
 ```
@@ -107,10 +134,11 @@ See [DESIGN.md](DESIGN.md) for the full architecture and philosophy.
 ## Project Structure
 
 ```
-kernel/      → Low-level kernel code (bootloader, VGA, scheduling)
+kernel/      → Low-level kernel code (bootloader, VGA, GDT, interrupts, keyboard)
 shell/       → Interactive shell with built-in commands
 dashboard/   → System monitoring and metrics
 journal/     → Persistent task tracking
+assistant/   → Cortex AI (local knowledge + OpenRouter integration)
 DESIGN.md    → Architecture and design philosophy
 ```
 
@@ -127,8 +155,9 @@ Why Claude OS?
 ## Roadmap
 
 - ✅ Phase 1: Foundation (shell, dashboard, journal)
-- 🔄 Phase 2: Core Systems (scheduler, filesystem, memory mgmt)
-- 📌 Phase 3: Experience (window manager, unified search, package manager)
+- ✅ Phase 2: Core Systems (GDT, interrupts, scheduler, keyboard)
+- ✅ Phase 3: AI Assistant (Cortex with local + OpenRouter modes)
+- 📌 Phase 4: Advanced (window manager, filesystem, memory paging, networking)
 
 ## Built With
 

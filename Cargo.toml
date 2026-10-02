@@ -1,5 +1,5 @@
 [workspace]
-members = ["kernel", "shell", "dashboard", "journal"]
+members = ["kernel", "shell", "dashboard", "journal", "assistant"]
 resolver = "2"
 
 [workspace.package]
