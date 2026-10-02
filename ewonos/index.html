@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EWONOS</title>
+<style>
+:root{--blue:#0b5ed7;--blue-d:#08306b;--blue-l:#4da3ff;--glass:rgba(10,40,100,.82);--win:#f3f7fd;--txt:#10213f}
+*{box-sizing:border-box;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;font:14px "Segoe UI",system-ui,sans-serif;color:var(--txt)}
+#boot{position:fixed;inset:0;background:#031433;color:#fff;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .6s}
+#boot h1{font-size:56px;letter-spacing:10px;margin:0;font-weight:300}
+#boot h1 b{color:var(--blue-l)}
+.bar{width:260px;height:6px;background:#0a2a63;border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1c7cff,#7cc4ff);animation:ld 2.2s forwards}
+@keyframes ld{to{width:100%}}
+#login{position:fixed;inset:0;z-index:9000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;background:radial-gradient(circle at 50% 30%,#1f7aff,#06265c 70%)}
+#login .av{width:110px;height:110px;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:56px}
+#login button{padding:8px 28px;border:0;border-radius:4px;background:#fff3;color:#fff;font-size:15px;cursor:pointer}
+#login button:hover{background:#fff5}
+#desktop{position:fixed;inset:0 0 44px 0;background:radial-gradient(ellipse at 70% 20%,#4da3ff 0,#0b5ed7 35%,#052a66 80%);background-size:cover}
+#desktop::after{content:"";position:absolute;inset:0;background:conic-gradient(from 200deg at 75% 45%,transparent 0 30%,#ffffff14 40%,transparent 55%);pointer-events:none}
+.icons{position:absolute;left:10px;top:10px;display:grid;grid-template-columns:80px;gap:6px;z-index:1}
+.icon{width:80px;padding:6px 2px;text-align:center;color:#fff;border-radius:4px;cursor:default;text-shadow:0 1px 3px #000a;font-size:12px}
+.icon:hover{background:#fff2}.icon .g{font-size:34px}
+#taskbar{position:fixed;left:0;right:0;bottom:0;height:44px;background:var(--glass);backdrop-filter:blur(14px);display:flex;align-items:center;gap:4px;padding:0 6px;z-index:5000;border-top:1px solid #6ab1ff55}
+.tb{height:36px;min-width:38px;padding:0 10px;border-radius:5px;border:0;background:transparent;color:#fff;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px}
+.tb:hover{background:#fff2}.tb.on{background:#fff3;box-shadow:inset 0 -3px var(--blue-l)}
+#startbtn{font-size:20px;background:linear-gradient(#2e8bff,#0a54c4);font-weight:700}
+#tray{margin-left:auto;color:#fff;text-align:right;font-size:12px;padding:0 8px;line-height:1.2}
+#start{position:fixed;left:6px;bottom:50px;width:340px;height:440px;background:var(--glass);backdrop-filter:blur(18px);border:1px solid #6ab1ff66;border-radius:8px;display:none;flex-direction:column;z-index:5001;color:#fff;padding:12px;box-shadow:0 10px 40px #0008}
+#start.open{display:flex}
+#start input{width:100%;padding:8px 10px;border-radius:5px;border:0;background:#fff2;color:#fff;margin-bottom:10px;user-select:text}
+#start input::placeholder{color:#cfe3ff}
+#start .list{flex:1;overflow:auto}
+.si{display:flex;gap:10px;align-items:center;padding:8px;border-radius:5px;cursor:pointer}.si:hover{background:#fff2}.si span{font-size:22px}
+#start .pw{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #fff3;padding-top:8px;margin-top:6px}
+#start .pw button{background:#fff2;border:0;color:#fff;border-radius:4px;padding:6px 12px;cursor:pointer}
+.win{position:absolute;background:var(--win);border-radius:8px;box-shadow:0 8px 32px #0007,0 0 0 1px #0b5ed7aa;display:flex;flex-direction:column;overflow:hidden;min-width:260px;min-height:140px}
+.win.max{inset:0 0 0 0!important;width:auto!important;height:auto!important;border-radius:0}
+.win.min{display:none}
+.title{height:34px;background:linear-gradient(#1f7aff,#0a4cb8);color:#fff;display:flex;align-items:center;padding-left:10px;gap:8px;cursor:move;flex:none}
+.title .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title button{width:42px;height:34px;border:0;background:transparent;color:#fff;font-size:14px;cursor:pointer}
+.title button:hover{background:#fff3}.title button.x:hover{background:#e81123}
+.body{flex:1;overflow:auto;position:relative;display:flex;flex-direction:column;user-select:text}
+.rz{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize}
+.btn{background:linear-gradient(#fff,#dce9fb);border:1px solid #8fb4e8;border-radius:4px;padding:4px 12px;cursor:pointer;color:var(--txt)}
+.btn:hover{background:#cfe3ff}
+.tool{display:flex;gap:6px;padding:6px;background:#dbe8fa;align-items:center;flex-wrap:wrap;border-bottom:1px solid #9bbbe8}
+textarea.np{flex:1;border:0;padding:8px;font:14px Consolas,monospace;resize:none;outline:0;width:100%}
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;flex:1}
+.calc .disp{grid-column:1/-1;background:#fff;border:1px solid #9bbbe8;text-align:right;font-size:28px;padding:8px;border-radius:4px}
+.calc button{font-size:18px;border:1px solid #9bbbe8;background:#e8f1fd;border-radius:4px;cursor:pointer}.calc button:hover{background:#cfe3ff}
+.calc button.op{background:#b9d6fa}
+.term{background:#020c20;color:#7fd0ff;font:13px Consolas,monospace;padding:8px;flex:1;overflow:auto;white-space:pre-wrap}
+.term input{background:transparent;border:0;outline:0;color:#fff;font:inherit;width:70%}
+/* games */
+.lib{display:grid;grid-template-columns:150px 1fr;flex:1;background:#0a1730;color:#dfeaff;min-height:0}
+.lib .side{background:#07102a;padding:10px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.lib .side div{padding:8px;border-radius:4px;cursor:pointer}.lib .side div:hover,.lib .side div.on{background:#1b3a7a}
+.lib .main{padding:14px;overflow:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:#12244d;border-radius:8px;overflow:hidden;cursor:pointer;border:1px solid #2a4a96}.card:hover{border-color:var(--blue-l)}
+.card .cv{height:90px;display:grid;place-items:center;font-size:44px}
+.card .ci{padding:8px}.card small{color:#8fb2ec}
+.play{background:linear-gradient(#37a0ff,#1259c9);color:#fff;border:0;border-radius:4px;padding:8px 22px;font-size:15px;cursor:pointer}
+canvas{display:block;background:#06122e}
+.set label{display:block;margin:8px 0 4px}
+.sw{display:inline-block;width:46px;height:30px;border-radius:5px;margin:3px;cursor:pointer;border:2px solid #fff}
+.ctx{position:fixed;background:var(--win);border:1px solid #8fb4e8;border-radius:5px;z-index:6000;box-shadow:0 4px 18px #0006;display:none}
+.ctx div{padding:7px 22px;cursor:pointer}.ctx div:hover{background:#cfe3ff}
+.toast{position:fixed;right:12px;bottom:56px;background:var(--glass);color:#fff;padding:12px 16px;border-radius:6px;z-index:7000;border-left:4px solid var(--blue-l);animation:tin .3s}
+@keyframes tin{from{transform:translateX(120%)}}
+</style>
+</head>
+<body>
+<div id="boot"><h1>EWON<b>OS</b></h1><div class="bar"><i></i></div><small>Starting EWONOS…</small></div>
+<div id="login"><div class="av">🙂</div><h2 style="margin:0;font-weight:400">Player One</h2><button id="signin">Sign in</button><small>EWONOS 1.0 — Blue Edition</small></div>
+<div id="desktop"><div class="icons" id="icons"></div></div>
+<div id="start"><input id="search" placeholder="Search apps…"><div class="list" id="slist"></div><div class="pw"><span>🙂 Player One</span><button id="shut">⏻ Shut down</button></div></div>
+<div id="taskbar"><button class="tb" id="startbtn">⊞</button><div id="apps" style="display:flex;gap:4px"></div><div id="tray"><div id="clock"></div><div id="date"></div></div></div>
+<div class="ctx" id="ctx"><div data-a="wall">🎨 Change wallpaper</div><div data-a="np">📝 New text file</div><div data-a="paint">🖌 Open Paint</div><div data-a="ref">⟳ Refresh</div></div>
+
+<script>
+const $=(s,e=document)=>e.querySelector(s);
+const Z={n:100};
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('ewon_'+k))??d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem('ewon_'+k,JSON.stringify(v))}catch(e){}}};
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+
+/* boot */
+setTimeout(()=>{$('#boot').style.opacity=0;setTimeout(()=>$('#boot').remove(),600);$('#login').style.display='flex'},2500);
+$('#signin').onclick=()=>{$('#login').style.display='none';toast('Welcome to EWONOS, Player One!')};
+$('#shut').onclick=()=>{document.body.innerHTML='<div style="background:#000;color:#4da3ff;height:100%;display:grid;place-items:center;font:20px Segoe UI">It is now safe to close EWONOS.<br><a style="color:#fff" href="">Power on</a></div>'};
+
+/* wallpapers */
+const walls=['radial-gradient(ellipse at 70% 20%,#4da3ff 0,#0b5ed7 35%,#052a66 80%)','linear-gradient(135deg,#00c6ff,#0072ff)','linear-gradient(160deg,#001a4d,#0b5ed7 60%,#7cc4ff)','radial-gradient(circle at 30% 70%,#38b6ff,#02143a 75%)'];
+function setWall(i){$('#desktop').style.background=walls[i];store.set('wall',i)}setWall(store.get('wall',0));
+
+/* clock */
+function tick(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});$('#date').textContent=d.toLocaleDateString()}
+tick();setInterval(tick,10000);
+
+/* window manager */
+const wins=new Map();
+function openApp(id){const a=APPS[id];if(!a)return;
+ if(a.single&&wins.has(id)){focus(wins.get(id));return}
+ const w=document.createElement('div');w.className='win';
+ w.style.cssText=`left:${60+wins.size*28}px;top:${30+wins.size*28}px;width:${a.w||520}px;height:${a.h||380}px`;
+ w.innerHTML=`<div class="title"><span>${a.icon}</span><span class="t">${a.name}</span><button class="mn">—</button><button class="mx">▢</button><button class="x">✕</button></div><div class="body"></div><div class="rz"></div>`;
+ $('#desktop').appendChild(w);
+ const rec={w,id,tb:null,cleanup:null};wins.set(a.single?id:id+Math.random(),rec);
+ const key=[...wins.keys()].pop();
+ rec.cleanup=a.init($('.body',w),w);
+ const tb=document.createElement('button');tb.className='tb';tb.innerHTML=`<span>${a.icon}</span><span>${a.name}</span>`;$('#apps').appendChild(tb);rec.tb=tb;
+ tb.onclick=()=>{if(w.classList.contains('min')){w.classList.remove('min');focus(rec)}else if(w.style.zIndex==Z.n)w.classList.add('min'),upd();else focus(rec)};
+ const close=()=>{rec.cleanup&&rec.cleanup();w.remove();tb.remove();wins.delete(key)};
+ $('.x',w).onclick=close;$('.mn',w).onclick=()=>{w.classList.add('min');upd()};
+ $('.mx',w).onclick=()=>w.classList.toggle('max');
+ $('.title',w).ondblclick=()=>w.classList.toggle('max');
+ w.addEventListener('mousedown',()=>focus(rec));
+ drag($('.title',w),w);resize($('.rz',w),w);focus(rec);$('#start').classList.remove('open')}
+function focus(r){r.w.classList.remove('min');r.w.style.zIndex=++Z.n;upd()}
+function upd(){wins.forEach(r=>r.tb.classList.toggle('on',+r.w.style.zIndex===Z.n&&!r.w.classList.contains('min')))}
+function drag(h,w){h.onmousedown=e=>{if(e.target.tagName==='BUTTON'||w.classList.contains('max'))return;const ox=e.clientX-w.offsetLeft,oy=e.clientY-w.offsetTop;
+ const mv=ev=>{w.style.left=ev.clientX-ox+'px';w.style.top=Math.max(0,ev.clientY-oy)+'px'};const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up)};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)}}
+function resize(h,w){h.onmousedown=e=>{e.stopPropagation();const sx=e.clientX,sy=e.clientY,sw=w.offsetWidth,sh=w.offsetHeight;
+ const mv=ev=>{w.style.width=Math.max(260,sw+ev.clientX-sx)+'px';w.style.height=Math.max(140,sh+ev.clientY-sy)+'px'};const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up)};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up)}}
+
+/* apps */
+const APPS={
+paint:{name:'EWON Paint',icon:'🖌',w:680,h:480,init(b){
+ b.innerHTML=`<div class="tool"><input type="color" id="pc" value="#0b5ed7"><label>Size <input type="range" id="ps" min="1" max="40" value="4"></label>
+ <button class="btn" data-t="pen">✏ Pen</button><button class="btn" data-t="eraser">🧽 Eraser</button><button class="btn" data-t="line">╱ Line</button><button class="btn" data-t="rect">▭ Rect</button><button class="btn" data-t="circle">◯ Circle</button><button class="btn" data-t="fill">🪣 Fill</button>
+ <button class="btn" id="pclr">🗑 Clear</button><button class="btn" id="psave">💾 Save PNG</button></div><div style="flex:1;overflow:auto;background:#8aa;"><canvas id="cv" width="1200" height="800" style="background:#fff;cursor:crosshair"></canvas></div>`;
+ const cv=$('#cv',b),c=cv.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,1200,800);c.lineCap=c.lineJoin='round';
+ let tool='pen',down=false,sx,sy,snap;
+ b.querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>tool=x.dataset.t);
+ const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+ const col=()=>tool==='eraser'?'#fff':$('#pc',b).value;
+ cv.onmousedown=e=>{[sx,sy]=pos(e);if(tool==='fill'){flood(c,cv,sx|0,sy|0,$('#pc',b).value);return}down=true;snap=c.getImageData(0,0,1200,800);c.strokeStyle=c.fillStyle=col();c.lineWidth=$('#ps',b).value;c.beginPath();c.moveTo(sx,sy)};
+ cv.onmousemove=e=>{if(!down)return;const[x,y]=pos(e);
+  if(tool==='pen'||tool==='eraser'){c.lineTo(x,y);c.stroke()}
+  else{c.putImageData(snap,0,0);c.beginPath();if(tool==='line'){c.moveTo(sx,sy);c.lineTo(x,y)}else if(tool==='rect')c.rect(sx,sy,x-sx,y-sy);else c.ellipse((sx+x)/2,(sy+y)/2,Math.abs(x-sx)/2,Math.abs(y-sy)/2,0,0,7);c.stroke()}};
+ cv.onmouseup=cv.onmouseleave=()=>down=false;
+ $('#pclr',b).onclick=()=>{c.fillStyle='#fff';c.fillRect(0,0,1200,800)};
+ $('#psave',b).onclick=()=>{const a=document.createElement('a');a.download='ewon-paint.png';a.href=cv.toDataURL();a.click()};
+ function flood(c,cv,x,y,hex){const W=cv.width,H=cv.height,d=c.getImageData(0,0,W,H),p=d.data;const i0=(y*W+x)*4,t=[p[i0],p[i0+1],p[i0+2]];
+  const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,bl=n&255;if(t[0]==r&&t[1]==g&&t[2]==bl)return;const st=[[x,y]];
+  while(st.length){const[a,bb]=st.pop();if(a<0||bb<0||a>=W||bb>=H)continue;const i=(bb*W+a)*4;if(p[i]!=t[0]||p[i+1]!=t[1]||p[i+2]!=t[2])continue;p[i]=r;p[i+1]=g;p[i+2]=bl;st.push([a+1,bb],[a-1,bb],[a,bb+1],[a,bb-1])}c.putImageData(d,0,0)}
+}},
+games:{name:'EWON Games',icon:'🎮',w:760,h:500,single:true,init(b){
+ const G=[['Neon Racer X','🏎','Racing',1],['Void Runner','🚀','Arcade',1],['Blue Realm Online','🐉','MMO',0],['Pixel Siege','🏰','Strategy',0],['Cyber Ninja 2077','🥷','Action',0],['Frost Farm','🌾','Sim',0]];
+ const owned=store.get('owned',{});
+ b.innerHTML=`<div class="lib"><div class="side"><b style="padding:8px">EWON GAMES</b><div class="on">Library</div><div>Store</div><div>Friends (0)</div><div style="margin-top:auto;color:#8fb2ec">All games are fake 😉</div></div><div class="main" id="gm"></div></div>`;
+ const gm=$('#gm',b);let stop=null;
+ function home(){stop&&stop();stop=null;gm.innerHTML='<h2 style="margin-top:0">Library</h2><div class="cards"></div>';
+  G.forEach(g=>{const d=document.createElement('div');d.className='card';d.innerHTML=`<div class="cv" style="background:linear-gradient(135deg,#1d6fff,#0a1f55)">${g[1]}</div><div class="ci"><b>${g[0]}</b><br><small>${g[2]} · ${owned[g[0]]?'Installed':'Not installed'}</small></div>`;d.onclick=()=>detail(g);$('.cards',gm).appendChild(d)})}
+ function detail(g){gm.innerHTML=`<button class="btn" id="bk">← Back</button><h1>${g[1]} ${g[0]}</h1><p>Hours played: ${(Math.random()*400|0)}h · Rating: ⭐⭐⭐⭐⭐ (totally real)</p><div id="act"></div><div id="stage"></div>`;
+  $('#bk',gm).onclick=home;const act=$('#act',gm);
+  if(!owned[g[0]]){act.innerHTML='<button class="play">Install</button>';act.firstChild.onclick=()=>{let p=0;act.innerHTML='<div class="bar" style="width:100%"><i style="animation:none;width:0"></i></div><small id="pt">Downloading… 0%</small>';const iv=setInterval(()=>{p+=Math.random()*9;if(p>=100){clearInterval(iv);owned[g[0]]=1;store.set('owned',owned);detail(g);return}$('i',act).style.width=p+'%';$('#pt',act).textContent='Downloading… '+(p|0)+'%'},150)}}
+  else{act.innerHTML='<button class="play">▶ Play</button>';act.firstChild.onclick=()=>run(g)}}
+ function run(g){const st=$('#stage',gm);$('#act',gm).innerHTML='';st.innerHTML='<canvas width="560" height="300"></canvas><div>Move: mouse · Click to shoot/boost · Score: <b id="sc">0</b></div>';
+  const cv=$('canvas',st),c=cv.getContext('2d');let sc=0,mx=280,ents=[],run=1,t=0;cv.onmousemove=e=>mx=e.clientX-cv.getBoundingClientRect().left;
+  const shots=[];cv.onclick=()=>shots.push([mx,270]);
+  const loop=()=>{if(!run)return;t++;c.fillStyle='#06122e';c.fillRect(0,0,560,300);
+   for(let i=0;i<30;i++){c.fillStyle='#fff6';c.fillRect((i*97+t*(1+i%3))%560,(i*53+t*2*(1+i%3))%300,2,2)}
+   if(t%25==0)ents.push([Math.random()*540,0,1+Math.random()*2]);
+   c.font='26px serif';c.fillText(g[1],mx-13,295);
+   shots.forEach((s,i)=>{s[1]-=7;c.fillStyle='#7cc4ff';c.fillRect(s[0]-2,s[1],4,10);if(s[1]<0)shots.splice(i,1)});
+   ents.forEach((e,i)=>{e[1]+=e[2];c.fillText('👾',e[0],e[1]);shots.forEach((s,j)=>{if(Math.abs(s[0]-e[0]-12)<18&&Math.abs(s[1]-e[1]+10)<18){ents.splice(i,1);shots.splice(j,1);sc+=10;$('#sc',st).textContent=sc}});if(e[1]>300){ents.splice(i,1);sc=Math.max(0,sc-5);$('#sc',st).textContent=sc}});
+   requestAnimationFrame(loop)};loop();stop=()=>run=0}
+ home();return()=>stop&&stop()}},
+files:{name:'File Explorer',icon:'📁',w:560,h:380,init(b){
+ const fs={'Documents':['readme.txt','notes.txt','homework.doc'],'Pictures':['wallpaper.png','paint1.png'],'Games':['NeonRacerX.exe','VoidRunner.exe'],'Music':['blue_song.mp3']};
+ b.innerHTML=`<div class="tool"><b>📁 This PC</b></div><div id="fl" style="padding:10px;display:grid;grid-template-columns:repeat(auto-fill,90px);gap:8px;align-content:start"></div>`;
+ const fl=$('#fl',b);function root(){$('.tool b',b).textContent='📁 This PC';fl.innerHTML='';Object.keys(fs).forEach(k=>{const d=document.createElement('div');d.style.textAlign='center';d.innerHTML=`<div style="font-size:38px">📁</div>${k}`;d.ondblclick=()=>dir(k);fl.appendChild(d)})}
+ function dir(k){$('.tool b',b).textContent='📁 This PC › '+k;fl.innerHTML='<button class="btn" style="grid-column:1/-1">← Back</button>';fl.firstChild.onclick=root;fs[k].forEach(f=>{const d=document.createElement('div');d.style.textAlign='center';d.innerHTML=`<div style="font-size:34px">${f.endsWith('exe')?'🎮':f.endsWith('png')?'🖼':f.endsWith('mp3')?'🎵':'📄'}</div>${f}`;d.ondblclick=()=>f.endsWith('exe')?openApp('games'):f.endsWith('png')?openApp('paint'):openApp('notepad');fl.appendChild(d)})}root()}},
+notepad:{name:'Notepad',icon:'📝',w:480,h:340,init(b){
+ b.innerHTML=`<div class="tool"><button class="btn" id="sv">💾 Save</button><span id="st"></span></div><textarea class="np" placeholder="Type something…"></textarea>`;
+ const t=$('textarea',b);t.value=store.get('note','');$('#sv',b).onclick=()=>{store.set('note',t.value);$('#st',b).textContent='Saved ✓'}}},
+calc:{name:'Calculator',icon:'🧮',w:280,h:360,init(b){
+ b.innerHTML='<div class="calc"><div class="disp">0</div></div>';const g=$('.calc',b),d=$('.disp',b);let e='';
+ '7 8 9 / 4 5 6 * 1 2 3 - 0 . = +'.split(' ').concat(['C']).forEach(k=>{const x=document.createElement('button');x.textContent=k;if('/*-+='.includes(k))x.className='op';
+  x.onclick=()=>{if(k=='C')e='';else if(k=='='){try{e=String(Function('return '+(e||0))())}catch(_){e='Error'}}else e+=k;d.textContent=e||'0'};g.appendChild(x)})}},
+term:{name:'EWON Terminal',icon:'⌨',w:560,h:340,init(b){
+ b.innerHTML='<div class="term"><div id="o">EWONOS [Version 1.0.blue]\nType "help" for commands.\n</div>C:\\&gt; <input id="i" autofocus></div>';
+ const o=$('#o',b),i=$('#i',b);b.onclick=()=>i.focus();
+ const cmds={help:()=>'help, ver, date, whoami, neofetch, paint, games, notepad, calc, clear',ver:()=>'EWONOS 1.0 Blue Edition',date:()=>new Date().toString(),whoami:()=>'player-one',
+  neofetch:()=>'  EWONOS\n  -------\n  OS: EWONOS 1.0 Blue\n  Shell: ewsh\n  Theme: Blue\n  Apps: Paint, Games, Notepad…\n  Uptime: '+(performance.now()/60000|0)+' min',
+  paint:()=>(openApp('paint'),'Opening…'),games:()=>(openApp('games'),'Opening…'),notepad:()=>(openApp('notepad'),'Opening…'),calc:()=>(openApp('calc'),'Opening…'),clear:()=>(o.textContent='','')};
+ i.onkeydown=e=>{if(e.key!=='Enter')return;const v=i.value.trim();o.textContent+='C:\\> '+v+'\n';const f=cmds[v];o.textContent+=(v?(f?f():`'${v}' is not recognized.`)+'\n':'');i.value='';b.firstChild.scrollTop=1e9}}},
+settings:{name:'Settings',icon:'⚙',w:420,h:320,single:true,init(b){
+ b.innerHTML='<div class="set" style="padding:14px"><h3 style="margin-top:0">Personalization</h3><label>Wallpaper</label><div id="sw"></div><p>EWONOS 1.0 Blue Edition<br>Everything is blue. Always.</p></div>';
+ walls.forEach((w,i)=>{const s=document.createElement('span');s.className='sw';s.style.background=w;s.onclick=()=>setWall(i);$('#sw',b).appendChild(s)})}},
+about:{name:'About EWONOS',icon:'ℹ',w:360,h:220,single:true,init(b){b.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:48px;color:#0b5ed7;font-weight:300;letter-spacing:6px">EWONOS</div><p>Version 1.0 · Blue Edition<br>Runs in your browser. Zero viruses, zero bluescreens*<br><small>*unless you ask nicely</small></p></div>'}}
+};
+const ICONS=['games','paint','files','notepad','calc','term','settings','about'];
+const ic=$('#icons'),sl=$('#slist');
+ICONS.forEach(id=>{const a=APPS[id];const d=document.createElement('div');d.className='icon';d.innerHTML=`<div class="g">${a.icon}</div>${a.name}`;d.ondblclick=()=>openApp(id);ic.appendChild(d);
+ const s=document.createElement('div');s.className='si';s.dataset.n=a.name.toLowerCase();s.innerHTML=`<span>${a.icon}</span>${a.name}`;s.onclick=()=>openApp(id);sl.appendChild(s)});
+$('#startbtn').onclick=e=>{e.stopPropagation();$('#start').classList.toggle('open');$('#search').focus()};
+$('#search').oninput=e=>sl.querySelectorAll('.si').forEach(s=>s.style.display=s.dataset.n.includes(e.target.value.toLowerCase())?'':'none');
+document.addEventListener('click',e=>{if(!e.target.closest('#start'))$('#start').classList.remove('open');$('#ctx').style.display='none'});
+$('#desktop').addEventListener('contextmenu',e=>{if(e.target.closest('.win'))return;e.preventDefault();const m=$('#ctx');m.style.cssText=`display:block;left:${e.clientX}px;top:${e.clientY}px`});
+$('#ctx').onclick=e=>{const a=e.target.dataset.a;if(a=='wall')setWall((store.get('wall',0)+1)%walls.length);else if(a=='np')openApp('notepad');else if(a=='paint')openApp('paint');else if(a=='ref')toast('Refreshed ✓')};
+</script>
+</body>
+</html>
