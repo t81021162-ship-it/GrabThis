@@ -1,4 +1,4 @@
-use x86_64::instructions::port::Port;
+use crate::port::Port;
 
 pub struct Keyboard {
     data_port: Port<u8>,

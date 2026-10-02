@@ -6,8 +6,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-bootloader = { version = "0.9", features = ["map_physical_memory"] }
-x86_64 = "0.15"
+x86 = "0.52"
 linked_list_allocator = "0.10"
 
 [[bin]]
@@ -26,4 +25,4 @@ panic = "abort"
 
 # Ensure we link with the bootloader
 [package.metadata.bootimage]
-run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
+run-command = ["qemu-system-i386", "-drive", "format=raw,file={}"]

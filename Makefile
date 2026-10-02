@@ -1,8 +1,9 @@
 .PHONY: help build-kernel build-shell run run-qemu clean
 
-KERNEL_TARGET := x86_64-unknown-none
+KERNEL_TARGET := i686-unknown-uefi
 KERNEL_DIR := kernel
 CARGO := cargo
+QEMU_ARCH := i386
 
 help:
 	@echo "Claude OS Build System"
@@ -31,7 +32,7 @@ build: build-kernel build-shell
 run: build-kernel
 	@echo "[QEMU] Starting Claude OS in QEMU..."
 	cd $(KERNEL_DIR) && $(CARGO) +nightly bootimage --release
-	qemu-system-x86_64 -drive format=raw,file=kernel/target/x86_64-unknown-none/release/boot-image.bin
+	qemu-system-i386 -drive format=raw,file=kernel/target/i686-unknown-uefi/release/boot-image.bin
 
 run-qemu: run
 

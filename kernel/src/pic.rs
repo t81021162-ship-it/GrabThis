@@ -1,4 +1,4 @@
-use x86_64::instructions::port::Port;
+use crate::port::Port;
 
 pub const PIC1_OFFSET: u8 = 32;
 pub const PIC2_OFFSET: u8 = 40;

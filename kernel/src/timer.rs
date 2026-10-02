@@ -1,4 +1,4 @@
-use x86_64::instructions::port::Port;
+use crate::port::Port;
 
 static mut TICK_COUNT: u64 = 0;
 

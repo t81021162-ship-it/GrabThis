@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use linked_list_allocator::LockedHeap;
 
+mod port;
 mod vga_buffer;
 mod gdt;
 mod interrupts;
@@ -25,22 +25,26 @@ use vga_buffer::Writer;
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-entry_point!(kernel_main);
+#[no_mangle]
+#[export_name = "_efi_main"]
+pub extern "C" fn efi_main() -> ! {
+    kernel_main();
+}
 
-pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
+pub fn kernel_main() -> ! {
     let mut writer = Writer::new();
 
     writer.write_str("\n");
     writer.write_str("╔════════════════════════════════════════╗\n");
-    writer.write_str("║     🔷 Claude OS Kernel v0.6.0         ║\n");
-    writer.write_str("║     (Phase 6: Graphics & Inspector)    ║\n");
+    writer.write_str("║   🔷 Claude OS Kernel v0.6.0 (32-bit)   ║\n");
+    writer.write_str("║  (Phase 6: Graphics & Inspector v86)   ║\n");
     writer.write_str("╚════════════════════════════════════════╝\n\n");
 
     writer.write_str("[INIT] Booting Claude OS...\n");
 
-    // Initialize heap
+    // Initialize heap (fixed location for v86)
     unsafe {
-        let heap_start = (boot_info.physical_memory_offset + 0x4000_0000) as *mut u8;
+        let heap_start = 0x10000 as *mut u8;
         ALLOCATOR.lock().init(heap_start, 100 * 1024);
     }
     writer.write_str("[OK] Heap allocator initialized\n");
@@ -118,7 +122,9 @@ pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 pub fn hlt_loop() -> ! {
     loop {
-        x86_64::instructions::hlt();
+        unsafe {
+            x86::halt();
+        }
     }
 }
 

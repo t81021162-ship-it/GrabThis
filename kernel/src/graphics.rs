@@ -1,8 +1,6 @@
 // VGA Graphics Mode - Phase 6
 // 640x480 16-color graphics mode
 
-use core::ptr;
-
 pub const VGA_WIDTH: usize = 640;
 pub const VGA_HEIGHT: usize = 480;
 pub const BYTES_PER_PIXEL: usize = 1;
