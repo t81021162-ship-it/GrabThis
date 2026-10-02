@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 25%, #16213e 50%, #1a2d4d 75%, #0f3460 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -110,20 +110,20 @@
 
         .lane {
             position: relative;
-            background: linear-gradient(90deg, rgba(50, 150, 50, 0.2) 0%, rgba(100, 200, 100, 0.1) 50%, rgba(50, 150, 50, 0.2) 100%);
-            border: 2px solid rgba(100, 200, 100, 0.4);
+            background: linear-gradient(90deg, rgba(30, 120, 30, 0.3) 0%, rgba(80, 180, 80, 0.15) 50%, rgba(30, 120, 30, 0.3) 100%);
+            border: 2px solid rgba(120, 230, 120, 0.5);
             border-radius: 15px;
             display: flex;
             align-items: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 1px 3px rgba(100, 200, 100, 0.2);
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 5px rgba(100, 200, 100, 0.3), 0 0 8px rgba(100, 200, 100, 0.1);
         }
 
         .lane:hover {
-            background: linear-gradient(90deg, rgba(100, 200, 100, 0.3) 0%, rgba(150, 250, 150, 0.2) 50%, rgba(100, 200, 100, 0.3) 100%);
-            border-color: rgba(150, 250, 150, 0.6);
-            box-shadow: inset 0 1px 3px rgba(100, 200, 100, 0.3), 0 0 15px rgba(100, 200, 100, 0.2);
+            background: linear-gradient(90deg, rgba(80, 180, 80, 0.4) 0%, rgba(150, 255, 150, 0.25) 50%, rgba(80, 180, 80, 0.4) 100%);
+            border-color: rgba(200, 255, 150, 0.8);
+            box-shadow: inset 0 2px 5px rgba(100, 200, 100, 0.4), 0 0 20px rgba(150, 255, 100, 0.35);
         }
 
         .lane:nth-child(-n+6) {
@@ -165,6 +165,8 @@
             position: relative;
             backdrop-filter: blur(5px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(255, 255, 255, 0.1);
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
         .plant-option:hover {
@@ -172,6 +174,10 @@
             transform: scale(1.1) translateY(-5px);
             border-color: #ffeb3b;
             box-shadow: 0 8px 25px rgba(100, 200, 100, 0.4), 0 0 20px rgba(255, 235, 59, 0.3);
+        }
+
+        .plant-option:active {
+            transform: scale(0.95);
         }
 
         .plant-option.selected {
@@ -209,6 +215,8 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
             text-transform: uppercase;
             letter-spacing: 1px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
         .start-btn {
@@ -304,19 +312,31 @@
         }
 
         .sun-projectile {
-            background: radial-gradient(circle at 30% 30%, #ffff44, #ffdd00);
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
+            background: radial-gradient(circle at 30% 30%, #ffff66, #ffdd00);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 1), 0 0 40px rgba(255, 255, 0, 0.6), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
+            animation: sun-glow 0.4s ease-in-out infinite;
+        }
+
+        @keyframes sun-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 0, 1), 0 0 40px rgba(255, 255, 0, 0.6), inset -1px -1px 3px rgba(0, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(255, 255, 0, 1), 0 0 50px rgba(255, 255, 0, 0.8), inset -1px -1px 3px rgba(0, 0, 0, 0.3); }
         }
 
         .thorn-projectile {
-            background: radial-gradient(circle at 30% 30%, #44ff44, #00dd00);
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
+            background: radial-gradient(circle at 30% 30%, #66ff44, #00ff00);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 1), 0 0 40px rgba(0, 255, 0, 0.6), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
+            animation: thorn-glow 0.3s ease-in-out infinite;
+        }
+
+        @keyframes thorn-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 0, 1), 0 0 40px rgba(0, 255, 0, 0.6), inset -1px -1px 3px rgba(0, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 0, 1), 0 0 50px rgba(0, 255, 0, 0.8), inset -1px -1px 3px rgba(0, 0, 0, 0.3); }
         }
 
         .flame-projectile {
-            background: radial-gradient(circle at 30% 30%, #ff8844, #ff3300);
-            box-shadow: 0 0 20px rgba(255, 102, 0, 0.8), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
-            animation: flame-pulse 0.3s ease-in-out infinite;
+            background: radial-gradient(circle at 30% 30%, #ff9955, #ff3300);
+            box-shadow: 0 0 25px rgba(255, 102, 0, 1), 0 0 45px rgba(255, 102, 0, 0.7), inset -1px -1px 3px rgba(0, 0, 0, 0.3);
+            animation: flame-pulse 0.25s ease-in-out infinite;
         }
 
         @keyframes flame-pulse {
@@ -472,36 +492,217 @@
             box-shadow: 0 10px 30px rgba(0, 255, 0, 0.5);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .game-board {
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(10, 100px);
+                grid-template-columns: repeat(5, 1fr);
+                grid-template-rows: repeat(5, 100px);
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .game-container {
+                border-radius: 15px;
+            }
+
+            .game-board {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(6, 90px);
                 gap: 8px;
-                padding: 15px;
+                padding: 12px;
+                min-height: 550px;
             }
 
             .game-title {
-                font-size: 26px;
+                font-size: 24px;
+                letter-spacing: 1px;
             }
 
             .game-stats {
-                gap: 20px;
-                font-size: 13px;
+                gap: 15px;
+                font-size: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .stat {
+                padding: 8px 15px;
+                gap: 8px;
+            }
+
+            .stat-label {
+                font-size: 12px;
             }
 
             .stat-value {
-                font-size: 20px;
+                font-size: 22px;
             }
 
             .plant-option {
-                width: 75px;
-                height: 75px;
-                font-size: 40px;
+                width: 70px;
+                height: 70px;
+                font-size: 38px;
+            }
+
+            .plant-cost {
+                width: 28px;
+                height: 28px;
+                font-size: 13px;
             }
 
             .game-header {
+                padding: 12px;
+                gap: 12px;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .game-controls {
                 padding: 15px;
-                gap: 15px;
+                gap: 12px;
+            }
+
+            .start-btn, .reset-btn {
+                padding: 12px 25px;
+                font-size: 14px;
+            }
+
+            .plant-selector {
+                gap: 10px;
+            }
+
+            .info-panel {
+                font-size: 13px;
+                padding: 12px;
+            }
+
+            .game-entity {
+                font-size: 45px;
+            }
+
+            .plant {
+                width: 55px;
+                height: 55px;
+            }
+
+            .zombie {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                border-radius: 12px;
+            }
+
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(7, 80px);
+                gap: 6px;
+                padding: 10px;
+                min-height: 560px;
+            }
+
+            .lane {
+                border-radius: 10px;
+            }
+
+            .game-title {
+                font-size: 20px;
+            }
+
+            .game-header {
+                padding: 10px;
+            }
+
+            .game-stats {
+                gap: 12px;
+                font-size: 11px;
+            }
+
+            .stat {
+                padding: 6px 10px;
+                border-radius: 8px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .plant-option {
+                width: 60px;
+                height: 60px;
+                font-size: 32px;
+            }
+
+            .plant-cost {
+                width: 24px;
+                height: 24px;
+                font-size: 11px;
+            }
+
+            .start-btn, .reset-btn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+
+            .game-controls {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .info-panel {
+                font-size: 12px;
+                padding: 10px;
+            }
+
+            .game-entity {
+                font-size: 40px;
+            }
+
+            .plant {
+                width: 50px;
+                height: 50px;
+            }
+
+            .zombie {
+                width: 45px;
+                height: 45px;
+            }
+
+            .zombie-health {
+                width: 40px;
+                top: -10px;
+            }
+
+            .tutorial {
+                padding: 30px;
+                max-width: 90%;
+            }
+
+            .tutorial h2 {
+                font-size: 24px;
+            }
+
+            .tutorial p {
+                font-size: 14px;
+            }
+
+            .game-over-content {
+                padding: 30px;
+            }
+
+            .game-over-title {
+                font-size: 40px;
+            }
+
+            .game-over-score {
+                font-size: 24px;
             }
         }
     </style>
@@ -620,7 +821,14 @@
                 const lane = document.createElement('div');
                 lane.className = 'lane';
                 lane.dataset.lane = i;
+
+                // Support both click and touch
                 lane.onclick = (e) => placePlant(i, e);
+                lane.ontouchstart = (e) => {
+                    e.preventDefault();
+                    placePlant(i, e);
+                };
+
                 board.appendChild(lane);
             }
         }
@@ -638,7 +846,14 @@
                     <div class="plant-cost">${plant.cost}</div>
                 `;
                 button.dataset.plant = key;
+
+                // Support both click and touch
                 button.onclick = () => selectPlant(key);
+                button.ontouchstart = (e) => {
+                    e.preventDefault();
+                    selectPlant(key);
+                };
+
                 selector.appendChild(button);
             });
         }
@@ -689,7 +904,7 @@
 
         // Spawn zombie wave
         function spawnZombieWave() {
-            const zombieCount = 3 + gameState.wave;
+            const zombieCount = 8 + gameState.wave * 3;  // Much more zombies!
             for (let i = 0; i < zombieCount; i++) {
                 setTimeout(() => {
                     const lane = Math.floor(Math.random() * GRID_ROWS);
@@ -698,14 +913,14 @@
                         lane: lane,
                         x: GAME_WIDTH - 100,
                         y: lane * LANE_HEIGHT + LANE_HEIGHT / 2,
-                        health: 1 + Math.floor(gameState.wave / 2),
-                        maxHealth: 1 + Math.floor(gameState.wave / 2),
-                        speed: 0.5 + gameState.wave * 0.2
+                        health: 2 + Math.floor(gameState.wave / 1.5),
+                        maxHealth: 2 + Math.floor(gameState.wave / 1.5),
+                        speed: 0.6 + gameState.wave * 0.25
                     };
                     gameState.zombies.push(zombie);
                     gameState.waveZombiesSpawned++;
                     renderZombie(zombie);
-                }, i * 800);
+                }, i * 500);  // Spawn faster
             }
         }
 
@@ -742,29 +957,35 @@
 
         // Create particles on zombie death
         function createDeathParticles(x, y) {
-            const particles = ['💥', '✨', '🌪️'];
-            for (let i = 0; i < 8; i++) {
+            const particles = ['💥', '✨', '🌪️', '⚡', '🔥'];
+            // More particles for more visual effect
+            for (let i = 0; i < 12; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'game-entity';
                 particle.textContent = particles[Math.floor(Math.random() * particles.length)];
                 particle.style.left = x + 'px';
                 particle.style.top = y + 'px';
-                particle.style.fontSize = '30px';
+                particle.style.fontSize = (20 + Math.random() * 20) + 'px';
                 particle.style.opacity = '1';
                 particle.style.pointerEvents = 'none';
+                particle.style.filter = 'drop-shadow(0 0 8px rgba(255, 255, 0, 0.8))';
 
                 document.getElementById('gameBoard').appendChild(particle);
 
-                const angle = (Math.PI * 2 * i) / 8;
-                const velocity = { x: Math.cos(angle) * 3, y: Math.sin(angle) * 3 };
+                const angle = (Math.PI * 2 * i) / 12 + (Math.random() * 0.3);
+                const speed = 2 + Math.random() * 3;
+                const velocity = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
                 let life = 1;
+                let rotation = 0;
 
                 const animateParticle = () => {
                     particle.style.left = (parseFloat(particle.style.left) + velocity.x) + 'px';
                     particle.style.top = (parseFloat(particle.style.top) + velocity.y) + 'px';
                     particle.style.opacity = life;
-                    life -= 0.05;
-                    velocity.y += 0.1; // gravity
+                    particle.style.transform = `rotate(${rotation}deg) scale(${life})`;
+                    life -= 0.04;
+                    rotation += 15;
+                    velocity.y += 0.15; // gravity
 
                     if (life > 0) {
                         requestAnimationFrame(animateParticle);
@@ -891,6 +1112,36 @@
             document.getElementById('gameBoard').appendChild(projEl);
         }
 
+        // Create hit effect
+        function createHitEffect(x, y) {
+            const hit = document.createElement('div');
+            hit.style.position = 'absolute';
+            hit.style.left = x + 'px';
+            hit.style.top = y + 'px';
+            hit.style.width = '30px';
+            hit.style.height = '30px';
+            hit.style.border = '2px solid #ff6666';
+            hit.style.borderRadius = '50%';
+            hit.style.pointerEvents = 'none';
+            hit.style.zIndex = '12';
+
+            document.getElementById('gameBoard').appendChild(hit);
+
+            let scale = 1;
+            const animate = () => {
+                scale += 0.15;
+                hit.style.opacity = 1 - (scale - 1) / 0.5;
+                hit.style.transform = `scale(${scale})`;
+
+                if (scale < 1.5) {
+                    requestAnimationFrame(animate);
+                } else {
+                    hit.remove();
+                }
+            };
+            animate();
+        }
+
         // Update projectiles
         function updateProjectiles() {
             gameState.projectiles.forEach(projectile => {
@@ -901,6 +1152,7 @@
                 if (distance < 15) {
                     // Hit!
                     projectile.target.health -= projectile.damage;
+                    createHitEffect(projectile.target.x, projectile.target.y);
                     const projEl = document.getElementById(`proj-${projectile.id}`);
                     if (projEl) projEl.remove();
                 } else {
