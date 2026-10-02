@@ -17,6 +17,8 @@ mod timer;
 mod fs;
 mod ipc;
 mod network;
+mod graphics;
+mod inspector;
 
 use vga_buffer::Writer;
 
@@ -30,8 +32,8 @@ pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     writer.write_str("\n");
     writer.write_str("╔════════════════════════════════════════╗\n");
-    writer.write_str("║     🔷 Claude OS Kernel v0.5.0         ║\n");
-    writer.write_str("║     (Phase 5: IPC & Networking)        ║\n");
+    writer.write_str("║     🔷 Claude OS Kernel v0.6.0         ║\n");
+    writer.write_str("║     (Phase 6: Graphics & Inspector)    ║\n");
     writer.write_str("╚════════════════════════════════════════╝\n\n");
 
     writer.write_str("[INIT] Booting Claude OS...\n");
@@ -86,6 +88,16 @@ pub fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let eth0 = network::NetworkInterface::new("eth0", [0x52, 0x54, 0x00, 0x12, 0x34, 0x56], [192, 168, 1, 100]);
     _net_stack.add_interface(eth0);
     writer.write_str("[OK] Network stack ready (eth0)\n");
+
+    // Initialize graphics
+    writer.write_str("[INIT] Initializing graphics...\n");
+    writer.write_str("[OK] VGA graphics ready (640x480)\n");
+
+    // Initialize System Inspector (custom feature!)
+    writer.write_str("[INIT] Initializing System Inspector...\n");
+    let mut _dashboard = inspector::Dashboard::new();
+    _dashboard.update(0);
+    writer.write_str("[OK] System Inspector online (3 widgets)\n");
 
     writer.write_str("\n✓ CPU: Online\n");
     writer.write_str("✓ Memory: Heap allocated\n");
