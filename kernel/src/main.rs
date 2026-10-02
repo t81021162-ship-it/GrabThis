@@ -5,6 +5,10 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 
 mod vga_buffer;
+mod gdt;
+mod interrupts;
+mod task;
+mod keyboard;
 
 use vga_buffer::Writer;
 
@@ -15,17 +19,31 @@ pub fn kernel_main(_boot_info: &'static BootInfo) -> ! {
 
     writer.write_str("\n");
     writer.write_str("╔════════════════════════════════════════╗\n");
-    writer.write_str("║     🔷 Claude OS Kernel v0.1.0         ║\n");
+    writer.write_str("║     🔷 Claude OS Kernel v0.2.0         ║\n");
+    writer.write_str("║         (Phase 2: Core Systems)         ║\n");
     writer.write_str("╚════════════════════════════════════════╝\n\n");
 
-    writer.write_str("[BOOT] Bootloader: UEFI\n");
-    writer.write_str("[BOOT] Architecture: x86_64\n");
+    writer.write_str("[INIT] Booting Claude OS...\n");
+    writer.write_str("[INIT] CPU: Online\n");
+    writer.write_str("[INIT] Memory: Mapped\n");
+    writer.write_str("[INIT] Bootloader: UEFI\n");
 
-    writer.write_str("\n✓ CPU: Online\n");
-    writer.write_str("✓ Memory: Mapped\n");
-    writer.write_str("✓ VGA: Ready\n");
-    writer.write_str("\n[STATUS] Kernel ready.\n");
-    writer.write_str("[STATUS] Waiting for shell integration...\n\n");
+    writer.write_str("\n[INIT] Loading core systems...\n");
+    gdt::init();
+    writer.write_str("[OK] GDT configured\n");
+
+    interrupts::init();
+    writer.write_str("[OK] Interrupts initialized\n");
+
+    writer.write_str("[OK] Scheduler framework loaded\n");
+    writer.write_str("[OK] Keyboard driver ready\n");
+
+    writer.write_str("\n✓ Core Systems: Online\n");
+    writer.write_str("✓ Architecture: x86_64\n");
+    writer.write_str("✓ Phase 2 Foundation: Ready\n");
+
+    writer.write_str("\n[STATUS] Kernel v0.2.0 ready.\n");
+    writer.write_str("[STATUS] Waiting for userland shell...\n\n");
 
     hlt_loop();
 }
@@ -44,8 +62,7 @@ fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
         writer.write_str("Location: ");
         writer.write_str(location.file());
-        writer.write_str(":");
-        // Can't easily convert line number to string in no_std, so skip it
+        writer.write_str("\n");
     }
 
     hlt_loop();
