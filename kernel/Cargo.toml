@@ -1,0 +1,25 @@
+[package]
+name = "claude-os-kernel"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+x86_64 = "0.15"
+uart_16550 = "0.8"
+spin = "0.12"
+log = "0.4"
+lazy_static = "1.4"
+
+[[bin]]
+name = "kernel"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
