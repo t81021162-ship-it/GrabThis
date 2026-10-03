@@ -1,0 +1,8 @@
+#!/bin/sh
+# Open the sleek Bananabot web chat in whatever browser this SliTaz flavor ships.
+monkos-start
+U=http://127.0.0.1:8080/
+for b in tazweb firefox midori chromium netsurf-gtk dillo; do
+  command -v $b >/dev/null 2>&1 && exec $b $U
+done
+echo "No GUI browser found - use the terminal chat: banana"

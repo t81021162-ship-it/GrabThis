@@ -18,3 +18,7 @@ Thumbs.db
 # Project-specific
 .claude_journal.json
 *.log
+
+# MonkOS build output
+monkos/out/
+monkos/cache/

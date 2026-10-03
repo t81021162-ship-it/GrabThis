@@ -1,0 +1,17 @@
+name: Build MonkOS.img
+on:
+  workflow_dispatch:
+  push:
+    paths: ['monkos/**', '.github/workflows/build-monkos.yml']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y xorriso cpio xz-utils fdisk e2fsprogs curl
+      - run: ./monkos/build.sh
+      - run: gzip -k monkos/out/MonkOS.img
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MonkOS-img
+          path: monkos/out/MonkOS.img.gz

@@ -1,0 +1,6 @@
+NAME="MonkOS"
+PRETTY_NAME="MonkOS Banana Jungle Edition (SliTaz base)"
+ID=monkos
+ID_LIKE=slitaz
+VERSION="1.0 Banana"
+HOME_URL="https://github.com/t81021162-ship-it/GrabThis"

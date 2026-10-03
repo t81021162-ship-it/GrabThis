@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bananabot - MonkOS</title>
+<style>
+:root{--leaf:#1f5d2e;--deep:#0c2a16;--ban:#ffd93b;--ban2:#f2b705;--bark:#6b4423;--glass:rgba(10,38,20,.62)}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:16px/1.45 system-ui,"Segoe UI",sans-serif;color:#f6f3dc;
+ background:radial-gradient(1200px 600px at 80% -10%,#2f8a45 0,transparent 60%),radial-gradient(900px 500px at 0 110%,#14502a 0,transparent 60%),linear-gradient(160deg,#0c2a16,#123d20 55%,#0a2112);
+ display:flex;align-items:center;justify-content:center;padding:14px}
+.vines{position:fixed;inset:0;pointer-events:none;opacity:.18;font-size:64px;overflow:hidden}
+.vines span{position:absolute;animation:sway 6s ease-in-out infinite alternate}
+@keyframes sway{to{transform:rotate(8deg) translateY(6px)}}
+.app{position:relative;width:min(900px,100%);height:min(86vh,760px);display:grid;grid-template-columns:1fr 250px;gap:14px}
+.card{background:var(--glass);backdrop-filter:blur(10px);border:1px solid rgba(255,217,59,.25);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(255,217,59,.18)}
+.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--ban),var(--ban2));display:grid;place-items:center;font-size:26px;box-shadow:0 0 18px rgba(255,217,59,.45)}
+header h1{font-size:18px;margin:0;color:var(--ban)}header small{opacity:.7}
+#log{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.m{max-width:78%;padding:10px 14px;border-radius:16px;animation:pop .18s ease-out;word-wrap:break-word;white-space:pre-wrap}
+@keyframes pop{from{transform:scale(.92) translateY(6px);opacity:0}}
+.b{align-self:flex-start;background:linear-gradient(135deg,#ffe36b,var(--ban2));color:#3a2a05;border-bottom-left-radius:4px}
+.u{align-self:flex-end;background:#1b6b35;border:1px solid #2f9a52;border-bottom-right-radius:4px}
+.hint{align-self:center;font-size:13px;opacity:.65}
+.typing{display:inline-flex;gap:4px}.typing i{width:7px;height:7px;border-radius:50%;background:#7a5a00;animation:bl 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bl{50%{transform:translateY(-5px);opacity:.4}}
+form{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,217,59,.18)}
+input{flex:1;background:rgba(0,0,0,.28);border:1px solid rgba(255,217,59,.3);border-radius:14px;padding:12px 14px;color:#fff;font:inherit;outline:none}
+input:focus{border-color:var(--ban);box-shadow:0 0 0 3px rgba(255,217,59,.15)}
+button{border:0;border-radius:14px;padding:0 18px;font:700 15px inherit;background:linear-gradient(135deg,var(--ban),var(--ban2));color:#3a2a05;cursor:pointer}
+button:active{transform:scale(.96)}
+aside .card{height:100%}aside h2{margin:0;padding:14px 16px;font-size:15px;color:var(--ban);border-bottom:1px solid rgba(255,217,59,.18)}
+#brain{flex:1;overflow:auto;padding:8px 12px;font-size:13px}
+#brain div{padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.12)}#brain b{color:var(--ban)}#brain em{opacity:.5;font-style:normal}
+.warn{margin:8px 12px;padding:8px 10px;border-radius:10px;background:rgba(242,183,5,.18);font-size:12px;display:none}
+@media(max-width:720px){.app{grid-template-columns:1fr}aside{display:none}}
+</style></head><body>
+<div class="vines"><span style="left:4%;top:-8px">🌿</span><span style="left:30%;top:-12px">🍃</span><span style="left:62%;top:-6px">🌴</span><span style="left:88%;top:-10px">🌿</span><span style="left:12%;bottom:0">🌴</span><span style="left:76%;bottom:-4px">🍌</span></div>
+<div class="app">
+ <main class="card">
+  <header><div class="av">🐵</div><div><h1>Bananabot</h1><small>MonkOS jungle AI · teach me anything 🍌</small></div></header>
+  <div id="log"></div>
+  <form id="f"><input id="t" autocomplete="off" autofocus placeholder="Say hi, or teach: question => answer"><button>Send 🍌</button></form>
+ </main>
+ <aside><div class="card"><h2>🧠 Banana Brain</h2><div class="warn" id="vol">No MONKDATA disk: I forget at shutdown!</div><div id="brain"></div></div></aside>
+</div>
+<script>
+const log=document.getElementById('log'),t=document.getElementById('t');let pending=null;
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function add(cls,txt){const d=document.createElement('div');d.className='m '+cls;d.textContent=txt;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+async function api(q){const r=await fetch('/cgi-bin/chat.sh?'+q);return r.json()}
+async function brain(){try{const j=await api('a=brain');const b=document.getElementById('brain');
+ document.getElementById('vol').style.display=j.volatile?'block':'none';
+ b.innerHTML=j.brain.length?j.brain.slice().reverse().map(p=>`<div><b>${esc(p[0])}</b> <em>→</em> ${esc(p[1])}</div>`).join(''):'<div><em>Empty. Teach me something!</em></div>'}catch(e){}}
+add('hint','Teach me with  question => answer  ·  remember that X is Y  ·  my name is …');
+add('b','Ooh ooh ah ah! I\'m Bananabot 🍌 Say hi, or teach me something and I\'ll remember it forever.');
+document.getElementById('f').onsubmit=async e=>{e.preventDefault();const v=t.value.trim();if(!v)return;t.value='';add('u',v);
+ const w=add('b','');w.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+ try{
+  if(pending){ if(v.toLowerCase()==='skip'){w.textContent='Okay, never mind!'}
+   else{await api('a=teach&q='+encodeURIComponent(pending)+'&r='+encodeURIComponent(v));w.textContent='Ooh ooh! Learned it! Try me. 🍌'} pending=null}
+  else{const j=await api('a=chat&m='+encodeURIComponent(v));await new Promise(r=>setTimeout(r,350));
+   w.textContent=j.reply||'🙈'; if(j.status==='LEARN'&&!/your name/.test(j.reply))pending=v}
+ }catch(err){w.textContent='Ooh ooh... my jungle connection broke 🙈'}
+ brain();log.scrollTop=log.scrollHeight};
+brain();
+</script></body></html>

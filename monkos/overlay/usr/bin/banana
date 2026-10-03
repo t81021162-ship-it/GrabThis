@@ -1,0 +1,115 @@
+#!/bin/sh
+# banana - Bananabot, the MonkOS jungle AI. Teach it things; it remembers.
+# Usage: banana                 interactive chat
+#        banana --once "text"   one reply (line 1: OK|LEARN|TAUGHT|..., rest: text)
+#        banana --teach Q A     teach one pair
+#        banana --forget Q      forget what it knows for Q
+#        banana --brain         dump the brain as "question<TAB>answer"
+DIR=${MONK_DIR:-/var/lib/monkos}
+BRAIN=$DIR/brain.tsv
+FACTS=$DIR/facts.tsv
+SEED=${MONK_SEED:-/usr/share/monkos/seed.tsv}
+mkdir -p "$DIR" 2>/dev/null; touch "$BRAIN" "$FACTS" 2>/dev/null
+
+Y='\033[1;33m'; G='\033[1;32m'; B='\033[0;33m'; D='\033[2m'; R='\033[0m'
+[ -t 1 ] || { Y=; G=; B=; D=; R=; }
+
+# lowercase, drop apostrophes, punctuation -> spaces, squeeze
+norm() { printf '%s' "$*" | tr 'A-Z' 'a-z' | sed "s/'//g; s/[^a-z0-9 ]/ /g; s/  */ /g; s/^ //; s/ \$//"; }
+clean() { printf '%s' "$*" | tr '\t\n\r' '   ' | sed 's/^ *//; s/ *$//'; }
+
+fact_get() { awk -F'\t' -v k="$1" '$1==k{v=$2} END{if(v!="")print v}' "$FACTS"; }
+fact_set() { grep -v "^$1	" "$FACTS" > "$FACTS.tmp" 2>/dev/null; printf '%s\t%s\n' "$1" "$2" >> "$FACTS.tmp"; mv "$FACTS.tmp" "$FACTS"; sync; }
+
+# best(file, normalized-input) -> "score<TAB>answer" or nothing. Exact match
+# scores 1; otherwise word-overlap (Jaccard) >= 0.6. Ties are picked at random.
+best() {
+  [ -s "$1" ] || return 1
+  awk -F'\t' -v q="$2" 'BEGIN{srand(); nq=split(q,qa," "); for(i=1;i<=nq;i++)Q[qa[i]]=1; uq=0; for(w in Q)uq++}
+  { k=$1; if(k=="")next; nk=split(k,ka," "); delete K; uk=0; inter=0
+    for(i=1;i<=nk;i++) if(!(ka[i] in K)){K[ka[i]]=1; uk++; if(ka[i] in Q)inter++}
+    s=(k==q)?1:inter/(uq+uk-inter)
+    if(s>=0.6){ if(s>best){best=s;n=0} if(s==best){n++; A[n]=$2} } }
+  END{ if(best>0) printf "%s\t%s\n", best, A[int(rand()*n)+1] }' "$1"
+}
+
+fill() { # expand {name} etc.
+  n=$(fact_get name); [ -n "$n" ] || n="friend"
+  printf '%s' "$1" | sed "s/{name}/$(printf '%s' "$n" | sed 's/[&/\]/\\&/g')/g"
+}
+
+teach() { # teach "question" "answer"
+  k=$(norm "$1"); a=$(clean "$2")
+  [ -n "$k" ] && [ -n "$a" ] || return 1
+  printf '%s\t%s\n' "$k" "$a" >> "$BRAIN"; sync
+}
+forget() { k=$(norm "$1"); [ -n "$k" ] || return 1
+  n=$(grep -c "^$k	" "$BRAIN" 2>/dev/null); [ "${n:-0}" -gt 0 ] || return 1
+  grep -v "^$k	" "$BRAIN" > "$BRAIN.tmp"; mv "$BRAIN.tmp" "$BRAIN"; sync; }
+
+# think "text": prints status line then reply. Statuses:
+#   OK (answered)  LEARN (don't know: next line should be the answer)
+#   TAUGHT / FORGOT / NAME / NOFORGET / EMPTY
+think() {
+  raw=$(clean "$1"); n=$(norm "$raw")
+  [ -n "$n" ] || { echo EMPTY; return; }
+  case "$raw" in
+    *" => "*) q=${raw%%" => "*}; a=${raw#*" => "}
+      if teach "$q" "$a"; then echo TAUGHT; echo "Ooh ooh! Got it! When you say \"$q\" I say \"$a\"."; else echo EMPTY; echo "Hmm, I need both a question and an answer: teach me like  question => answer"; fi; return;;
+  esac
+  case "$n" in
+    "my name is "*|"call me "*|"i am called "*)
+      nm=${raw##* }; fact_set name "$nm"; echo NAME; echo "Ooh ooh ah ah! Nice to meet you, $nm! I'll remember you."; return;;
+    "what is my name"|"whats my name"|"who am i"|"do you know my name")
+      nm=$(fact_get name)
+      if [ -n "$nm" ]; then echo OK; echo "You're $nm, of course! Bananas never forget."; else echo LEARN; echo "I don't know your name yet! Tell me: my name is ..."; fi; return;;
+    "forget "*) q=${raw#* }
+      if forget "$q"; then echo FORGOT; echo "Poof! I forgot everything about \"$q\"."; else echo NOFORGET; echo "I don't remember anything about \"$q\" anyway."; fi; return;;
+    "remember that "*) body=${raw#* that }
+      subj=${body%% is *}; pred=${body#* is }
+      if [ "$subj" != "$body" ] && [ -n "$pred" ]; then
+        teach "what is $subj" "$subj is $pred"; teach "$subj" "$subj is $pred"; teach "tell me about $subj" "$subj is $pred"
+        echo TAUGHT; echo "Memorised in my banana brain: $subj is $pred."
+      else echo EMPTY; echo "Say it like: remember that X is Y"; fi; return;;
+  esac
+  for f in "$BRAIN" "$SEED"; do
+    r=$(best "$f" "$n")
+    if [ -n "$r" ]; then echo OK; fill "${r#*	}"; echo; return; fi
+  done
+  echo LEARN
+  echo "Ooh ooh? I don't know what to say to that yet! What should I say? (just type the answer, or 'skip')"
+}
+
+case "$1" in
+  --once) think "$2"; exit;;
+  --teach) teach "$2" "$3" && echo TAUGHT; exit;;
+  --forget) forget "$2" && echo FORGOT; exit;;
+  --brain) cat "$BRAIN"; exit;;
+  --help|-h) sed -n '2,7p' "$0"; exit;;
+esac
+
+# ---------- interactive chat ----------
+clear 2>/dev/null
+[ -r /usr/share/monkos/banner.txt ] && printf "${Y}%s${R}\n" "$(cat /usr/share/monkos/banner.txt)"
+[ -e "$DIR/.volatile" ] && printf "${B}(!) No MONKDATA disk found - what you teach me is forgotten at shutdown.${R}\n"
+printf "${D}Teach me:  question => answer   |  remember that X is Y  |  my name is ...${R}\n"
+printf "${D}Commands:  /brain  /forget Q  /help  /quit${R}\n\n"
+nm=$(fact_get name); [ -n "$nm" ] && printf "${Y}banana>${R} Ooh ooh! Welcome back, %s!\n" "$nm" || printf "${Y}banana>${R} Ooh ooh ah ah! I'm Bananabot. Say hi, or teach me something!\n"
+pending=
+while printf "\n${G}you>${R} " && read -r line; do
+  case "$line" in
+    /quit|/exit|/q) printf "${Y}banana>${R} Ooh ooh! Bye bye! 🍌\n" | sed 's/ 🍌//'; exit 0;;
+    /help) printf "${Y}banana>${R} Say anything. If I don't know what to reply, I'll ask and remember your answer.\n  question => answer      teach me directly\n  remember that X is Y    teach me a fact\n  forget X                make me forget\n  /brain                  show what I know\n"; continue;;
+    /brain) if [ -s "$BRAIN" ]; then awk -F'\t' '{printf "  %s  ->  %s\n",$1,$2}' "$BRAIN"; else echo "  (empty - teach me something!)"; fi; continue;;
+    /forget\ *) line="forget ${line#/forget }";;
+  esac
+  if [ -n "$pending" ]; then
+    case "$line" in skip|"") printf "${Y}banana>${R} Okay, never mind!\n";;
+      *) teach "$pending" "$line"; printf "${Y}banana>${R} Ooh ooh! Learned it! Try me.\n";; esac
+    pending=; continue
+  fi
+  out=$(think "$line"); st=$(printf '%s\n' "$out" | sed -n 1p); msg=$(printf '%s\n' "$out" | sed 1d)
+  [ "$st" = EMPTY ] && [ -z "$msg" ] && continue
+  [ "$st" = LEARN ] && [ -n "$(norm "$line")" ] && case "$msg" in "I don't know your name"*) ;; *) pending=$line;; esac
+  printf "${Y}banana>${R} %s\n" "$msg"
+done

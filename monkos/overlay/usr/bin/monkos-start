@@ -1,0 +1,16 @@
+#!/bin/sh
+# Idempotent MonkOS service start: mounts the MONKDATA disk (brain persistence) and starts the web chat.
+D=/var/lib/monkos
+mkdir -p $D
+if ! mountpoint -q $D 2>/dev/null; then
+  for p in $(awk 'NR>2{print $4}' /proc/partitions); do
+    dev=/dev/$p; [ -b "$dev" ] || continue
+    if blkid "$dev" 2>/dev/null | grep -q 'LABEL="MONKDATA"'; then
+      for fs in ext4 ext3 ext2; do mount -t $fs -o rw "$dev" $D 2>/dev/null && break; done; break
+    fi
+  done
+fi
+mountpoint -q $D 2>/dev/null && rm -f $D/.volatile || touch $D/.volatile
+if ! pidof httpd >/dev/null 2>&1; then
+  httpd -p 127.0.0.1:8080 -h /usr/share/monkos/www >/dev/null 2>&1
+fi
