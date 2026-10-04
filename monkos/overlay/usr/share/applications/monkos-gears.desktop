@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Banana Brigade
+Comment=Cover-shooter v0.06 pre-alpha
+Exec=monkos-browser apps/gears.html
+Icon=applications-games
+Categories=Game;

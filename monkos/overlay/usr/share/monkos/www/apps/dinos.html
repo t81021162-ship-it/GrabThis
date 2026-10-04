@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dino Index - MonkOS</title>
+<style>
+:root{--ban:#ffd93b;--bg:#0c2a16;--card:rgba(255,255,255,.06)}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px/1.45 system-ui,sans-serif;color:#f6f3dc;background:radial-gradient(900px 500px at 90% -10%,#2f8a45 0,transparent 60%),linear-gradient(160deg,#0c2a16,#123d20 60%,#0a2112);padding:18px}
+.w{max-width:1100px;margin:auto}h1{margin:0;color:var(--ban);font-size:28px}.sub{opacity:.7;margin:2px 0 14px}
+a.back{color:var(--ban);text-decoration:none;font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px;align-items:center}
+input,select{background:#0006;border:1px solid #ffd93b55;border-radius:12px;color:#fff;padding:9px 12px;font:inherit}
+input:focus,select:focus{outline:2px solid var(--ban)}.chip{border:1px solid #ffd93b55;border-radius:99px;padding:6px 13px;cursor:pointer;background:transparent;color:#f6f3dc;font:inherit;font-size:14px}.chip.on{background:var(--ban);color:#3a2a05;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid #ffd93b2e;border-radius:18px;padding:14px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-4px);border-color:var(--ban);box-shadow:0 10px 28px #0007}
+.ic{font-size:50px;filter:drop-shadow(0 4px 6px #0008)}.n{font-weight:700;font-size:17px;margin-top:4px}.l{font-size:12px;opacity:.65;font-style:italic}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;margin:6px 4px 0 0;background:#fff2}.carn{background:#c92a2a88}.herb{background:#2b8a3e99}.piso{background:#1971c288}
+.num{position:absolute;top:10px;right:12px;opacity:.4;font-weight:700}.got{position:absolute;bottom:8px;right:10px;font-size:18px;filter:grayscale(1) opacity(.35)}.got.y{filter:none}
+dialog{border:1px solid var(--ban);border-radius:22px;background:#0f3320;color:#f6f3dc;max-width:560px;width:92vw;padding:22px}dialog::backdrop{background:#000b}
+dialog h2{margin:0;color:var(--ban)}.big{font-size:90px;float:right;margin:0 0 6px 10px}
+.stat{display:grid;grid-template-columns:90px 1fr;align-items:center;gap:8px;font-size:13px;margin:5px 0}.bt{height:9px;background:#0007;border-radius:9px;overflow:hidden}.bt i{display:block;height:100%;background:linear-gradient(90deg,#ffd93b,#f08c00);border-radius:9px}
+.cmp{position:relative;height:46px;margin:12px 0;background:#0005;border-radius:10px;padding:6px 10px;font-size:12px}.cmp b{display:block;height:12px;background:var(--ban);border-radius:6px;margin:3px 0}.cmp b.h{background:#74c0fc}
+button.x{border:0;border-radius:12px;padding:9px 16px;font:700 14px inherit;background:var(--ban);color:#3a2a05;cursor:pointer;margin:6px 6px 0 0}button.x.s{background:#ffffff22;color:#fff}
+.q{text-align:center;padding:10px}.q .opts{display:grid;gap:8px;margin-top:12px}.q button{padding:11px;border-radius:12px;border:1px solid #ffd93b66;background:#ffffff14;color:#fff;font:inherit;cursor:pointer}.q button.ok{background:#2b8a3e}.q button.no{background:#c92a2a}
+.foot{opacity:.5;font-size:12px;margin-top:22px;text-align:center}
+</style></head><body><div class="w">
+<a class="back" href="index.html">&larr; Jungle Hub</a>
+<h1>🦖 Dino Index</h1><div class="sub">15 prehistoric legends · tap a card for the full field notes · collect them all 🍌</div>
+<div class="bar"><input id="q" placeholder="Search dinos…" style="flex:1;min-width:160px"><button class="chip on" data-f="all">All</button><button class="chip" data-f="carnivore">Carnivores</button><button class="chip" data-f="herbivore">Herbivores</button><button class="chip" data-f="piscivore">Fish-eaters</button><button class="chip" data-f="got">Collected</button>
+<select id="sort"><option value="n">Sort: Index #</option><option value="len">Longest</option><option value="mass">Heaviest</option><option value="age">Oldest</option></select><button class="chip" id="quiz">🎯 Quiz me</button></div>
+<div id="count" class="sub"></div><div class="grid" id="grid"></div>
+<div class="foot">Facts are approximate - paleontologists keep revising them! Dino Index · MonkOS</div></div>
+<dialog id="dlg"></dialog>
+<script>
+// name, pronounce, meaning, icon, diet, period, mya(start), length m, mass kg, where, danger, speed, smarts, fact
+const D=[
+["Tyrannosaurus rex","tie-RAN-oh-SOR-us","Tyrant lizard king","🦖","carnivore","Late Cretaceous",68,12,8000,"North America",10,5,6,"Its bite is estimated at 35,000+ newtons, among the strongest of any land animal ever. Tiny two-fingered arms, but each was strong enough to lift a person."],
+["Triceratops","try-SER-ah-tops","Three-horned face","🦕","herbivore","Late Cretaceous",68,8.5,7000,"North America",6,4,3,"Its skull could reach about 2 m long - one of the largest of any land animal. It shared its world with T. rex."],
+["Velociraptor","vel-OSS-ih-RAP-tor","Swift thief","🦖","carnivore","Late Cretaceous",75,2,18,"Mongolia (Asia)",5,8,7,"Only about the size of a turkey - and covered in feathers! Quill knobs on a fossil arm bone prove it. The movie versions are really Deinonychus-sized."],
+["Stegosaurus","STEG-oh-SOR-us","Roof lizard","🦕","herbivore","Late Jurassic",155,9,5000,"North America, Portugal",4,2,1,"Its tail spikes are officially called the 'thagomizer'. Its brain was roughly the size of a lime."],
+["Brachiosaurus","BRAK-ee-oh-SOR-us","Arm lizard","🦕","herbivore","Late Jurassic",154,22,35000,"North America",2,2,2,"Named 'arm lizard' because its front legs were longer than its back legs, giving it a giraffe-like pose. It could reach leaves ~9 m up."],
+["Spinosaurus","SPY-no-SOR-us","Spine lizard","🦖","piscivore","Mid Cretaceous",99,14,7400,"North Africa",9,4,5,"The biggest known predatory dinosaur, with a tall sail and a crocodile-like snout built for catching fish. It likely spent lots of time in the water."],
+["Ankylosaurus","an-KIE-lo-SOR-us","Fused lizard","🦕","herbivore","Late Cretaceous",68,7,6000,"North America",5,1,1,"A living tank: bony armor plates all over, eyelids included, plus a heavy bony tail club that could break bones."],
+["Parasaurolophus","PAR-ah-sor-OL-oh-fus","Near-crested lizard","🦕","herbivore","Late Cretaceous",76,9.5,3000,"North America",2,5,4,"Its hollow head crest, up to ~1.8 m long, worked like a trombone - it probably made deep, honking calls."],
+["Pachycephalosaurus","PAK-ee-SEF-ah-lo-SOR-us","Thick-headed lizard","🦕","herbivore","Late Cretaceous",70,4.5,450,"North America",3,5,3,"Its dome-shaped skull was up to ~25 cm thick. Scientists still argue whether it headbutted rivals."],
+["Allosaurus","AL-oh-SOR-us","Different lizard","🦖","carnivore","Late Jurassic",155,8.5,2000,"North America, Portugal",8,6,4,"The top predator of its time. Its skull was built like a hatchet - it may have slammed its jaws down and ripped upward."],
+["Diplodocus","dih-PLOD-oh-kus","Double beam","🦕","herbivore","Late Jurassic",154,26,15000,"North America",2,2,1,"One of the longest dinosaurs. Its whip-like tail may have cracked faster than the speed of sound (scientists debate it!)."],
+["Carnotaurus","KAR-no-TOR-us","Meat-eating bull","🦖","carnivore","Late Cretaceous",72,8,1500,"Argentina (South America)",8,7,4,"Bull-like horns above its eyes and the tiniest arms of any big predator. Fossil skin shows it was covered in pebbly scales."],
+["Dilophosaurus","dye-LOH-foh-SOR-us","Two-crested lizard","🦖","carnivore","Early Jurassic",193,7,400,"North America",6,6,4,"It had two thin crests on its head, likely for display. The neck frill and venom spit in the movies were made up!"],
+["Gallimimus","GAL-ih-MY-mus","Chicken mimic","🦖","herbivore","Late Cretaceous",70,6,400,"Mongolia (Asia)",1,10,5,"A toothless, ostrich-like sprinter that may have hit ~50 km/h. It probably ate plants, eggs and small animals."],
+["Utahraptor","YOO-tah-RAP-tor","Utah thief","🦖","carnivore","Early Cretaceous",139,7,500,"Utah, USA",9,6,6,"The biggest raptor known: about 7 m long with a ~24 cm sickle claw on each foot. Probably feathered, too."]
+].map((a,i)=>({id:i+1,name:a[0],say:a[1],mean:a[2],ic:a[3],diet:a[4],per:a[5],age:a[6],len:a[7],mass:a[8],where:a[9],dng:a[10],spd:a[11],iq:a[12],fact:a[13]}));
+let got;try{got=new Set(JSON.parse(localStorage.dino_got||'[]'))}catch(e){got=new Set()}
+const save=()=>{try{localStorage.dino_got=JSON.stringify([...got])}catch(e){}};
+let filt='all';const $=s=>document.querySelector(s),grid=$('#grid'),dlg=$('#dlg');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){const q=$('#q').value.trim().toLowerCase(),s=$('#sort').value;
+ let l=D.filter(d=>(filt==='all'||(filt==='got'?got.has(d.id):d.diet===filt))&&(!q||(d.name+d.mean+d.per+d.where+d.diet).toLowerCase().includes(q)));
+ if(s==='len')l.sort((a,b)=>b.len-a.len);else if(s==='mass')l.sort((a,b)=>b.mass-a.mass);else if(s==='age')l.sort((a,b)=>b.age-a.age);
+ $('#count').textContent=l.length+' of 15 shown · collected '+got.size+'/15';
+ grid.innerHTML=l.map(d=>`<div class="card" data-id="${d.id}"><span class="num">#${String(d.id).padStart(2,'0')}</span><div class="ic">${d.ic}</div><div class="n">${esc(d.name)}</div><div class="l">${esc(d.mean)}</div><span class="tag ${d.diet.slice(0,4)}">${d.diet}</span><span class="tag">${esc(d.per)}</span><span class="got ${got.has(d.id)?'y':''}">🍌</span></div>`).join('')||'<div class="sub">No dinos found. Try another search!</div>'}
+function bar(n,l){return `<div class="stat"><span>${l}</span><div class="bt"><i style="width:${n*10}%"></i></div></div>`}
+function open(id){const d=D[id-1],mx=26;dlg.innerHTML=`<div class="big">${d.ic}</div><h2>${esc(d.name)}</h2><div class="l">/${esc(d.say)}/ · “${esc(d.mean)}”</div>
+<p>${esc(d.fact)}</p>
+<div class="stat"><span>Era</span><span>${esc(d.per)} · ~${d.age} million years ago</span></div><div class="stat"><span>Diet</span><span>${d.diet}</span></div><div class="stat"><span>Lived in</span><span>${esc(d.where)}</span></div><div class="stat"><span>Weight</span><span>~${d.mass.toLocaleString()} kg</span></div>
+${bar(d.dng,'Danger')}${bar(d.spd,'Speed')}${bar(d.iq,'Smarts')}
+<div class="cmp">Length ~${d.len} m<b style="width:${Math.max(2,d.len/mx*100)}%"></b>Human (1.8 m)<b class="h" style="width:${1.8/mx*100}%"></b></div>
+<button class="x" id="col">${got.has(d.id)?'🍌 Collected!':'Collect 🍌'}</button><button class="x s" id="cl">Close</button>`;dlg.showModal();
+ $('#col').onclick=()=>{got.has(d.id)?got.delete(d.id):got.add(d.id);save();open(id);render()};$('#cl').onclick=()=>dlg.close()}
+grid.onclick=e=>{const c=e.target.closest('.card');if(c)open(+c.dataset.id)};
+document.querySelectorAll('.chip[data-f]').forEach(b=>b.onclick=()=>{filt=b.dataset.f;document.querySelectorAll('.chip[data-f]').forEach(x=>x.classList.toggle('on',x===b));render()});
+$('#q').oninput=render;$('#sort').onchange=render;dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});
+// quiz
+let streak=0;function quiz(){const d=D[Math.floor(Math.random()*15)],kind=Math.random()<.5?'mean':'age';let opts=[d];while(opts.length<4){const o=D[Math.floor(Math.random()*15)];if(!opts.includes(o))opts.push(o)}opts.sort(()=>Math.random()-.5);
+ const qt=kind==='mean'?`Which dino's name means <b>“${esc(d.mean)}”</b>?`:`Which dino lived in <b>${esc(d.where)}</b> during the <b>${esc(d.per)}</b> and was a <b>${d.diet}</b>?`;
+ dlg.innerHTML=`<div class="q"><h2>🎯 Dino Quiz</h2><div class="l">Streak: ${streak}</div><p style="font-size:18px">${qt}</p><div class="opts">${opts.map(o=>`<button data-id="${o.id}">${o.ic} ${esc(o.name)}</button>`).join('')}</div><div id="r" style="min-height:28px;margin-top:10px"></div><button class="x s" id="cl">Close</button></div>`;if(!dlg.open)dlg.showModal();
+ $('#cl').onclick=()=>dlg.close();dlg.querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{const ok=D[b.dataset.id-1]===d||(kind!=='mean'&&D[b.dataset.id-1].where===d.where&&D[b.dataset.id-1].per===d.per&&D[b.dataset.id-1].diet===d.diet);
+  dlg.querySelectorAll('.opts button').forEach(x=>x.disabled=true);b.classList.add(ok?'ok':'no');streak=ok?streak+1:0;if(ok){got.add(d.id);save();render()}
+  $('#r').innerHTML=(ok?'🍌 Correct! ':'🙈 Nope - it was <b>'+esc(d.name)+'</b>. ')+'<button class="x" id="nx">Next</button>';$('#nx').onclick=quiz})}
+$('#quiz').onclick=quiz;render();
+</script></body></html>

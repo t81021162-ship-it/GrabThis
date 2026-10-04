@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Jungle Hub
+Comment=All MonkOS apps
+Exec=monkos-browser apps/index.html
+Icon=user-home
+Categories=Utility;

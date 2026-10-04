@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Dino Index
+Comment=15 dinos with stats and a quiz
+Exec=monkos-browser apps/dinos.html
+Icon=applications-science
+Categories=Education;

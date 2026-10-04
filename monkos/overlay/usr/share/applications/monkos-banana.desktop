@@ -2,6 +2,6 @@
 Type=Application
 Name=Bananabot
 Comment=Chat with the MonkOS banana AI
-Exec=monkos-browser
+Exec=monkos-browser 
 Icon=face-monkey
 Categories=Utility;

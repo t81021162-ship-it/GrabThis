@@ -53,3 +53,14 @@ never replaced. The AI is plain busybox-`sh` + `awk`, so it needs nothing beyond
 The overlay, AI, CGI/web chat, remaster, and MONKDATA partitioning were boot-tested in QEMU against a
 stand-in SliTaz-style ISO. It has **not** yet been run against the real SliTaz ISO (that host was
 unreachable from the dev sandbox); if SliTaz's boot config layout differs, `build.sh` warns about it.
+
+## Jungle Hub apps (v1.1)
+
+Served by the same httpd; open with `monkos-browser apps/index.html` or the menu entries.
+
+* **Banana Brigade v0.06 pre-alpha** (`apps/gears.html`) — an original top-down cover shooter, no third-party
+  assets or names. WASD move, mouse aim/shoot, `R` reload (press again in the green zone = active reload, jam if you miss),
+  `Shift` hunker behind crates, `Space` roll, `E` melee peel, waves + a boss every 5th wave, regenerating health, banana pickups.
+* **Dino Index** (`apps/dinos.html`) — 15 dinosaurs with stats, field notes, search/filter/sort, a collection tracker
+  (saved in the browser) and a quiz.
+* **Jungle Hub** (`apps/index.html`) — launcher; Bananabot's chat links to it.
