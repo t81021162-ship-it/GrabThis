@@ -1,10 +1,7 @@
-plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-}
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
-    namespace 'com.grabthis.antivirus'
     compileSdkVersion 28
 
     defaultConfig {
