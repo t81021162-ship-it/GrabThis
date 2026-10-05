@@ -8,6 +8,7 @@ import android.os.Environment
 import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -96,13 +97,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun hasStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
+            hasAllFilesAccess()
         } else {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun hasAllFilesAccess(): Boolean {
+        return Environment.isExternalStorageManager()
     }
 
     private fun requestStoragePermission() {

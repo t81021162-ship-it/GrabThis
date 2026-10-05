@@ -44,7 +44,7 @@ class ThreatDetector {
     )
 
     fun scanFilename(filename: String): ThreatResult {
-        val lowerFilename = filename.lowercase()
+        val lowerFilename = filename.toLowerCase()
 
         for (suspicious in suspiciousFilenames) {
             if (lowerFilename.contains(suspicious)) {
@@ -66,11 +66,11 @@ class ThreatDetector {
     }
 
     fun scanContent(content: String): ThreatResult {
-        val lowerContent = content.lowercase()
+        val lowerContent = content.toLowerCase()
 
         // Check for cryptominer patterns
         for (pattern in cryptominerPatterns) {
-            if (lowerContent.contains(pattern.lowercase())) {
+            if (lowerContent.contains(pattern.toLowerCase())) {
                 return ThreatResult(
                     isThreat = true,
                     threatType = "CRYPTOMINER",
