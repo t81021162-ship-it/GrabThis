@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GrabThis AntiVirus</string>
+    <string name="scan_button">Full Scan</string>
+    <string name="quick_scan_button">Quick Demo</string>
+    <string name="welcome_message">Welcome to GrabThis AntiVirus</string>
+</resources>

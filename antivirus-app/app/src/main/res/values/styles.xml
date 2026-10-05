@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.AntiVirus" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">#1a237e</item>
+        <item name="colorPrimaryDark">#000051</item>
+        <item name="colorAccent">#ff5252</item>
+    </style>
+
+</resources>

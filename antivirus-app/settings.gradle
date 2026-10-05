@@ -1,0 +1,16 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolution {
+    eachArtifact {
+        goOffline()
+    }
+}
+
+include ':app'
+rootProject.name = 'GrabThis AntiVirus'

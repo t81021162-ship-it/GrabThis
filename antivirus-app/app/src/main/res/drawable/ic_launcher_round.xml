@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+
+    <!-- Circular background -->
+    <circle
+        android:cx="96"
+        android:cy="96"
+        android:r="88"
+        android:fillColor="#1a237e" />
+
+    <!-- Shield background with rounded corners -->
+    <path
+        android:pathData="M96,32L52,52V92C52,132 96,152 96,152C96,152 140,132 140,92V52Z"
+        android:fillColor="#3949ab" />
+
+    <!-- Check mark -->
+    <path
+        android:pathData="M72,92L84,104L120,68"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+</vector>
