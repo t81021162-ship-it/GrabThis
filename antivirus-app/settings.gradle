@@ -1,14 +1,7 @@
 pluginManagement {
     repositories {
-        google()
         mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolution {
-    eachArtifact {
-        goOffline()
+        google()
     }
 }
 
