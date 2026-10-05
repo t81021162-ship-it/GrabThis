@@ -37,8 +37,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Full Scan"
-            android:textSize="14sp"
-            android:padding="12dp"
+            android:textSize="13sp"
+            android:padding="10dp"
             android:background="@drawable/button_style"
             android:textColor="@android:color/white" />
 
@@ -48,9 +48,40 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Quick Demo"
-            android:textSize="14sp"
-            android:padding="12dp"
+            android:textSize="13sp"
+            android:padding="10dp"
             android:background="@drawable/button_style"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:spacing="8dp"
+        android:layout_marginTop="12dp">
+
+        <Button
+            android:id="@+id/quarantineButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Quarantine ID"
+            android:textSize="12sp"
+            android:padding="8dp"
+            android:background="#ff9800"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/deleteButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Delete ID"
+            android:textSize="12sp"
+            android:padding="8dp"
+            android:background="#f44336"
             android:textColor="@android:color/white" />
 
     </LinearLayout>

@@ -1,10 +1,14 @@
 package com.grabthis.antivirus
 
+import java.io.File
+
 data class ThreatResult(
     val isThreat: Boolean,
     val threatType: String,
     val severity: String,
-    val description: String
+    val description: String,
+    val filePath: String = "",
+    val fileSize: Long = 0L
 )
 
 class ThreatDetector {
@@ -127,5 +131,39 @@ class ThreatDetector {
 
         // Then check content (decompiled code)
         return scanContent(apkContent)
+    }
+
+    fun scanFile(file: File): ThreatResult {
+        // First check filename
+        val filenameResult = scanFilename(file.name)
+        if (filenameResult.isThreat) {
+            return filenameResult.copy(filePath = file.absolutePath, fileSize = file.length())
+        }
+
+        // Try to read and scan content for text files
+        if (file.isFile && file.canRead()) {
+            try {
+                val fileSize = file.length()
+                // Only scan readable files up to 1MB to avoid performance issues
+                if (fileSize < 1024 * 1024) {
+                    val content = file.readText(Charsets.UTF_8)
+                    val contentResult = scanContent(content)
+                    if (contentResult.isThreat) {
+                        return contentResult.copy(filePath = file.absolutePath, fileSize = fileSize)
+                    }
+                }
+            } catch (e: Exception) {
+                // File might be binary or unreadable, skip content scan
+            }
+        }
+
+        return ThreatResult(
+            isThreat = false,
+            threatType = "CLEAN",
+            severity = "NONE",
+            description = "File appears safe",
+            filePath = file.absolutePath,
+            fileSize = file.length()
+        )
     }
 }
