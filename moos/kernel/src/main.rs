@@ -6,6 +6,7 @@ mod cow;
 mod multiboot;
 mod graphics;
 mod gui;
+mod serial;
 
 use core::panic::PanicInfo;
 
@@ -26,8 +27,14 @@ pub static MULTIBOOT_HEADER: multiboot::MultibootHeader = multiboot::MultibootHe
 // Kernel entry point
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    serial::serial_init();
+    serial::serial_write_string("[KERNEL] MOoOS boot started\n");
+    serial::serial_write_string("[KERNEL] Initializing VGA...\n");
+
     vga::init();
     vga::clear_screen();
+
+    serial::serial_write_string("[KERNEL] VGA ready\n");
 
     cow::print_banner();
 
