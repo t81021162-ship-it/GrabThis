@@ -1,0 +1,24 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Bootloader artifacts
+*.bin
+boot-image.bin
