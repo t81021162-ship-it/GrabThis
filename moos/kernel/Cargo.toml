@@ -1,0 +1,23 @@
+[package]
+name = "moos-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bootloader = { version = "0.9", features = ["map_physical_memory"] }
+volatile = "0.4"
+spin = "0.9"
+x86_64 = "0.14"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[[bin]]
+name = "kernel"
+path = "src/main.rs"
+
+[lib]
+name = "moos_kernel"
+path = "src/lib.rs"

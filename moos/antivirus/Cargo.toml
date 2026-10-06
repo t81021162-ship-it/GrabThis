@@ -1,0 +1,16 @@
+[package]
+name = "moo-the-virus"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[[bin]]
+name = "moo-scanner"
+path = "src/main.rs"
+
+[lib]
+name = "moo_antivirus"
+path = "src/lib.rs"
