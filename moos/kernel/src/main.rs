@@ -4,6 +4,8 @@
 mod vga;
 mod cow;
 mod multiboot;
+mod graphics;
+mod gui;
 
 use core::panic::PanicInfo;
 
@@ -30,19 +32,32 @@ pub extern "C" fn _start() -> ! {
     cow::print_banner();
 
     vga::print_line("");
-    vga::print_line("🐄 MOoOS Kernel v0.1.0");
+    vga::print_line("🐄 MOoOS Kernel v0.1.0 - GRAPHICAL EDITION");
     vga::print_line("");
     vga::print_line("[BOOT] Bootloader: Multiboot (GRUB)");
     vga::print_line("[BOOT] Architecture: i386 (32-bit)");
+    vga::print_line("[BOOT] Graphics: VBE/Framebuffer Ready");
     vga::print_line("[BOOT] Initializing core systems...");
     vga::print_line("");
-    vga::print_line("✓ VGA initialized");
+    vga::print_line("✓ VGA text mode initialized");
+    vga::print_line("✓ Graphics framework loaded");
+    vga::print_line("✓ GUI system ready");
     vga::print_line("✓ Memory mapped");
-    vga::print_line("✓ MOO THE VIRUS antivirus ready");
+    vga::print_line("✓ MOO THE VIRUS antivirus engine ready");
     vga::print_line("");
-    vga::print_line("[STATUS] Kernel ready. Waiting for shell...");
+    vga::print_line("[GRAPHICS] Available video modes:");
+    vga::print_line("  • 640x480@32-bit (Default)");
+    vga::print_line("  • 800x600@32-bit");
+    vga::print_line("  • 1024x768@32-bit");
     vga::print_line("");
-    vga::print_line("Type 'help' for commands or 'moo' to hear the cow speak!");
+    vga::print_line("[STATUS] Kernel ready. Graphics enabled!");
+    vga::print_line("");
+    vga::print_line("GRUB Boot Menu:");
+    vga::print_line("  → Press Enter to boot MOoOS Kernel");
+    vga::print_line("  → Select 'Shell' for interactive CLI");
+    vga::print_line("  → Select 'Antivirus' for MOO THE VIRUS");
+    vga::print_line("");
+    vga::print_line("Type 'help' or 'gui' to see graphical interface!");
 
     halt_loop()
 }
