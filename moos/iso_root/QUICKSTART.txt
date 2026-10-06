@@ -1,0 +1,205 @@
+================================================================================
+                    🐄 MOoOS v0.1.0 - Quick Start
+================================================================================
+
+Welcome to MOoOS! Your bootable environment is ready.
+
+================================================================================
+AVAILABLE PROGRAMS
+================================================================================
+
+1. MOoOS Shell (Interactive CLI)
+   Command: /bin/moos-shell
+   Features: Commands, status, help, moo, echo
+
+2. MOO THE VIRUS (Antivirus Scanner)
+   Command: /bin/moo-scanner
+   Features: Real-time threat scanning, 5-tier threat levels
+
+3. MOoOS Dashboard (System Monitor)
+   Command: /bin/moos-dashboard
+   Features: CPU, memory, disk metrics, antivirus status
+
+4. Source Code & Documentation
+   Location: /docs/
+   - README.md     - Full documentation
+   - DESIGN.md     - Architecture & design philosophy
+   - Makefile      - Build system
+   - source/       - Complete source code
+
+================================================================================
+RUNNING PROGRAMS
+================================================================================
+
+From the boot menu, select the program you want to run:
+
+🐄 MOoOS Shell - Start here for interactive environment
+🧼 MOO THE VIRUS - Scan code for threats
+📊 MOoOS Dashboard - Monitor system performance
+📚 Documentation - View this guide and source
+
+================================================================================
+SHELL COMMANDS
+================================================================================
+
+Once in the shell, try these commands:
+
+  help       → Show all available commands
+  moo        → Hear the cow speak 🐄
+  whoami     → Show your identity
+  status     → Display system status
+  echo TEXT  → Print text
+  clear      → Clear screen
+  exit/quit  → Exit the shell
+
+Example Session:
+  moos> help
+  moos> moo
+  moos> status
+  moos> echo "Hello from MOoOS!"
+  moos> exit
+
+================================================================================
+MOO THE VIRUS ANTIVIRUS
+================================================================================
+
+Real-time threat detection with 5 threat levels:
+
+  🟢 SAFE (0-24)         - No threats
+  🟡 SUSPICIOUS (25-49)  - Investigate
+  🟠 WARNING (50-74)     - Action recommended
+  🔴 DANGEROUS (75-99)   - Stop & investigate
+  💀 CRITICAL (100)      - Quarantine immediately
+
+Detects:
+  ✓ Dangerous code patterns (rm -rf /, SQL injection, etc.)
+  ✓ Harmful filenames (malware, virus, backdoor, etc.)
+  ✓ Compound threats (multiple patterns)
+  ✓ Real-time scoring (0-100)
+
+================================================================================
+BUILDING FROM SOURCE
+================================================================================
+
+If you want to rebuild MOoOS from source:
+
+1. Navigate to docs directory:
+   $ cd /docs
+
+2. View the README:
+   $ cat README.md
+
+3. Build everything:
+   $ make build
+
+4. Run components:
+   $ make run              # Run in QEMU
+   $ cargo run -p moos-shell
+   $ cargo run -p moo-the-virus
+   $ make test            # Run tests
+
+Requirements:
+  - Rust 1.70+
+  - Cargo
+  - QEMU (optional, for kernel testing)
+
+================================================================================
+SYSTEM REQUIREMENTS
+================================================================================
+
+Minimum:
+  - x86/x86_64 processor
+  - 256MB RAM
+  - 50MB free disk (for running)
+  - 2GB free (for building from source)
+
+Recommended:
+  - 512MB+ RAM
+  - 1GB free disk
+  - Modern processor (2010+)
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Program won't start?
+  → Try running from /bin/ directory
+  → Check permissions: ls -l /bin/
+  → View error messages carefully
+
+Antivirus not finding threats?
+  → It only scans what you give it
+  → Use "1" to scan code input
+  → Use "2" to check file names
+
+Shell commands not working?
+  → Type 'help' to see available commands
+  → Commands are lowercase
+  → Use 'echo TEXT' (not 'echo "TEXT"')
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+/bin/              - Compiled binaries (shell, antivirus, dashboard)
+/boot/             - GRUB bootloader files
+/docs/             - Documentation & source code
+  ├── README.md    - Complete guide
+  ├── DESIGN.md    - Architecture
+  ├── Makefile     - Build system
+  ├── Cargo.toml   - Project manifest
+  └── source/      - Full source code
+
+================================================================================
+FEATURES HIGHLIGHT
+================================================================================
+
+🐄 Cow-Themed Design
+   - Farm-inspired commands and UI
+   - Moo sounds and cow references
+   - Transparent, honest interface
+
+🔒 Security First
+   - MOO THE VIRUS antivirus
+   - Threat detection & scoring
+   - No hidden processes
+
+👀 Transparent
+   - Source code included
+   - See how everything works
+   - Understand your system
+
+⚡ Developer Friendly
+   - Written in Rust (safe, fast)
+   - Modular architecture
+   - Comprehensive tests
+
+================================================================================
+SUPPORT & RESOURCES
+================================================================================
+
+Documentation:
+  → /docs/README.md   - Full feature guide
+  → /docs/DESIGN.md   - System architecture
+
+Source Code:
+  → /docs/source/     - Complete implementation
+
+Report Issues:
+  → Check DESIGN.md for known limitations
+  → Review source code for understanding
+  → All code is open-source
+
+================================================================================
+                        Happy Farming! 🌾🐄
+                   Made with ❤️ by the MOoOS Farm
+================================================================================
+
+Next Steps:
+  1. Select "🐄 MOoOS Shell" from the boot menu
+  2. Type 'help' to see available commands
+  3. Type 'moo' to hear the cow
+  4. Explore the antivirus with MOO THE VIRUS
+  5. Check the dashboard for system metrics
+
+Enjoy MOoOS! 🐄

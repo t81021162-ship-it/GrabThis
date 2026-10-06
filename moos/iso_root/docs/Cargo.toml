@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "kernel",
+    "antivirus",
+    "shell",
+    "dashboard",
+]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
