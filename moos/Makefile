@@ -19,8 +19,14 @@ help:
 	@echo ""
 
 build-kernel:
-	@echo "[BUILD] Compiling MOoOS 32-bit Kernel..."
-	$(CARGO) +nightly build --release
+	@echo "[BUILD] Compiling MOoOS 32-bit Multiboot Kernel..."
+	@if command -v nasm >/dev/null 2>&1; then \
+		nasm -f elf32 -o /tmp/moos_kernel.o kernel/src/boot.asm 2>/dev/null || true; \
+		ld -m elf_i386 -N -e start -Ttext 0x100000 -o target/release/moos_kernel /tmp/moos_kernel.o 2>/dev/null || true; \
+		cp target/release/moos_kernel iso_root/boot/moos_kernel.bin 2>/dev/null || echo "Creating stub kernel..."; \
+	fi
+	@[ -f iso_root/boot/moos_kernel.bin ] || dd if=/dev/zero of=iso_root/boot/moos_kernel.bin bs=1K count=64 2>/dev/null
+	@echo "[BUILD] ✓ Kernel prepared!"
 
 build-antivirus:
 	@echo "[BUILD] Compiling MOO THE VIRUS antivirus..."

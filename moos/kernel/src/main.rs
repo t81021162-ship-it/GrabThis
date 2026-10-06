@@ -3,9 +3,25 @@
 
 mod vga;
 mod cow;
+mod multiboot;
 
 use core::panic::PanicInfo;
 
+// Multiboot header - MUST be in first 8KB for GRUB to find it
+#[link_section = ".multiboot_header"]
+#[no_mangle]
+pub static MULTIBOOT_HEADER: multiboot::MultibootHeader = multiboot::MultibootHeader {
+    magic: 0x1BADB002,
+    flags: 0x00000003, // ALIGN | MEMINFO
+    checksum: 0xE4524FFD, // -(0x1BADB002 + 0x00000003)
+    header_addr: 0,
+    load_addr: 0,
+    load_end_addr: 0,
+    bss_end_addr: 0,
+    entry_addr: 0,
+};
+
+// Kernel entry point
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     vga::init();
@@ -16,7 +32,7 @@ pub extern "C" fn _start() -> ! {
     vga::print_line("");
     vga::print_line("🐄 MOoOS Kernel v0.1.0");
     vga::print_line("");
-    vga::print_line("[BOOT] Bootloader: BIOS/UEFI");
+    vga::print_line("[BOOT] Bootloader: Multiboot (GRUB)");
     vga::print_line("[BOOT] Architecture: i386 (32-bit)");
     vga::print_line("[BOOT] Initializing core systems...");
     vga::print_line("");
@@ -33,7 +49,7 @@ pub extern "C" fn _start() -> ! {
 
 fn halt_loop() -> ! {
     loop {
-        unsafe { asm!("hlt") }
+        unsafe { core::arch::asm!("hlt") }
     }
 }
 
