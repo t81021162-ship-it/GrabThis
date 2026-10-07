@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cell Editor 3D</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #0b1020; color: #e8edf7;
+    font-family: system-ui, -apple-system, Roboto, sans-serif;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+
+  #info {
+    position: fixed; top: 0; left: 0; right: 0; padding: 12px 14px;
+    pointer-events: none;
+    background: linear-gradient(#0b1020ee, #0b102000);
+  }
+  #info-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  #title { font-size: 18px; font-weight: 700; }
+  #type { font-size: 15px; color: #8fd3ff; margin-top: 2px; }
+  #traits { font-size: 12px; color: #aab4c8; margin-top: 6px; line-height: 1.4; }
+  #notes { font-size: 12px; color: #c9d6a8; margin-top: 4px; line-height: 1.4; }
+  #hint { font-size: 11px; color: #6f7a94; margin-top: 6px; }
+
+  .btns { display: flex; gap: 6px; pointer-events: auto; }
+  .btn {
+    font: inherit; font-size: 13px; color: #e8edf7; background: #1b2540;
+    border: 1px solid #2c3a63; border-radius: 10px; padding: 6px 10px;
+  }
+  .btn:disabled { opacity: 0.4; }
+
+  #tray {
+    position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    background: #0b1020e6; border-top: 1px solid #1f2a4a;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .chip {
+    font: inherit; font-size: 13px; color: #e8edf7; background: #1b2540;
+    border: 1px solid #2c3a63; border-radius: 14px; height: 52px;
+    touch-action: none; cursor: grab;
+  }
+  .chip:active { cursor: grabbing; }
+  .chip .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  #ghost {
+    position: fixed; left: 0; top: 0; display: none; pointer-events: none;
+    padding: 8px 14px; border-radius: 12px; background: #2a3c6ecc;
+    border: 1px solid #8fd3ff; font-size: 14px; white-space: nowrap;
+    transform: translate(-50%, -150%);
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 175px; transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 10px; background: #000000cc; font-size: 13px;
+    opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="info">
+  <div id="info-row">
+    <div>
+      <div id="title">Cell Editor 3D</div>
+      <div id="type">Empty membrane</div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="undo" disabled>Undo</button>
+      <button class="btn" id="clear" disabled>Clear</button>
+    </div>
+  </div>
+  <div id="traits">Drag parts from the tray onto the cell</div>
+  <div id="notes"></div>
+  <div id="hint">Drag background: rotate · Pinch: zoom · Tap a part: remove</div>
+</div>
+
+<div id="tray">
+  <button class="chip" data-type="nucleus"><span class="dot" style="background:#9b6bd6"></span>Nucleus</button>
+  <button class="chip" data-type="mitochondria"><span class="dot" style="background:#f08a3c"></span>Mitochondria</button>
+  <button class="chip" data-type="chloroplast"><span class="dot" style="background:#3fbf4a"></span>Chloroplast</button>
+  <button class="chip" data-type="vacuole"><span class="dot" style="background:#7ec8ff"></span>Vacuole</button>
+  <button class="chip" data-type="ribosomes"><span class="dot" style="background:#d9dde8"></span>Ribosomes</button>
+  <button class="chip" data-type="flagellum"><span class="dot" style="background:#e0c97a"></span>Flagellum</button>
+  <button class="chip" data-type="cellwall"><span class="dot" style="background:#b08a4e"></span>Cell wall</button>
+</div>
+
+<div id="ghost"></div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from './three.module.js';
+
+// ---------- Part definitions ----------
+const PARTS = {
+  nucleus:      { label: 'Nucleus',       max: 1 },
+  mitochondria: { label: 'Mitochondria',  max: 8 },
+  chloroplast:  { label: 'Chloroplast',   max: 6 },
+  vacuole:      { label: 'Vacuole',       max: 1 },
+  ribosomes:    { label: 'Ribosomes',     max: 5 },
+  flagellum:    { label: 'Flagellum',     max: 4 },
+  cellwall:     { label: 'Cell wall',     max: 1 },
+};
+
+const R = 1.2;               // membrane radius
+const items = [];            // { id, type, pos: Vector3|null, dir: Vector3|null }
+let nextId = 1;
+
+// ---------- Three.js setup ----------
+const canvas = document.createElement('canvas');
+document.body.prepend(canvas);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1020);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 0.4, 6);
+camera.lookAt(0, 0, 0);
+
+scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x203040, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+sun.position.set(3, 5, 4);
+scene.add(sun);
+
+const cell = new THREE.Group();
+cell.position.y = 0.35;      // sits above the tray
+scene.add(cell);
+
+const raycaster = new THREE.Raycaster();
+let membrane = null;
+let wall = null;
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  // Narrow (portrait phone) screens need more distance so the whole cell fits
+  camera.position.z = camera.aspect < 0.8 ? 9 : 6;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- Helpers ----------
+function mat(color, opts = {}) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05, ...opts });
+}
+
+// Sphere pushed toward a cube as n grows: n=2 round, n=3.5 slightly boxy, n=6 box-like (walled plant cell)
+function shapeGeometry(n) {
+  const g = new THREE.SphereGeometry(R, 96, 64);
+  const p = g.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).divideScalar(R);
+    const s = Math.pow(
+      Math.pow(Math.abs(v.x), n) + Math.pow(Math.abs(v.y), n) + Math.pow(Math.abs(v.z), n),
+      1 / n
+    );
+    v.divideScalar(s).multiplyScalar(R);
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+function seeded(seed) {
+  let s = seed * 9301 + 49297;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function traits() {
+  const c = {};
+  for (const it of items) c[it.type] = (c[it.type] || 0) + 1;
+  return c;
+}
+
+// ---------- Building the cell from its parts ----------
+function buildPart(it) {
+  const g = new THREE.Group();
+  const rnd = seeded(it.id);
+
+  switch (it.type) {
+    case 'nucleus': {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.36, 32, 24), mat(0x9b6bd6));
+      const nucleolus = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 14), mat(0x4b2a7a));
+      nucleolus.position.set(0.08, 0.05, 0.1);
+      g.add(body, nucleolus);
+      g.position.copy(it.pos);
+      break;
+    }
+    case 'mitochondria': {
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.18, 6, 12), mat(0xf08a3c));
+      g.add(m);
+      g.position.copy(it.pos);
+      g.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
+      break;
+    }
+    case 'chloroplast': {
+      const c = new THREE.Mesh(new THREE.SphereGeometry(0.14, 20, 14), mat(0x3fbf4a));
+      c.scale.set(1.8, 0.45, 1);
+      g.add(c);
+      g.position.copy(it.pos);
+      g.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
+      break;
+    }
+    case 'vacuole': {
+      const v = new THREE.Mesh(
+        new THREE.SphereGeometry(0.42, 32, 24),
+        mat(0x7ec8ff, { transparent: true, opacity: 0.35, depthWrite: false })
+      );
+      g.add(v);
+      g.position.copy(it.pos);
+      break;
+    }
+    case 'ribosomes': {
+      for (let k = 0; k < 6; k++) {
+        const r = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), mat(0xd9dde8));
+        r.position.set((rnd() - 0.5) * 0.24, (rnd() - 0.5) * 0.24, (rnd() - 0.5) * 0.24);
+        g.add(r);
+      }
+      g.position.copy(it.pos);
+      break;
+    }
+    case 'flagellum': {
+      // A wavy tail that starts on the membrane and points outward
+      const start = it.pos.clone();
+      const dir = it.dir.clone();
+      const side = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      const perp = new THREE.Vector3().crossVectors(dir, side).normalize();
+      const pts = [];
+      for (let i = 0; i <= 40; i++) {
+        const t = i / 40;
+        pts.push(
+          start.clone()
+            .addScaledVector(dir, t * 1.1)
+            .addScaledVector(perp, Math.sin(t * Math.PI * 4) * 0.12 * t)
+        );
+      }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 60, 0.03, 8, false), mat(0xe0c97a)));
+      break;
+    }
+    default:
+      return null;
+  }
+
+  g.userData.itemId = it.id;
+  return g;
+}
+
+function rebuild() {
+  // Dispose everything from the previous build
+  for (let i = cell.children.length - 1; i >= 0; i--) {
+    const o = cell.children[i];
+    cell.remove(o);
+    o.traverse((n) => {
+      if (n.geometry) n.geometry.dispose();
+      if (n.material) n.material.dispose();
+    });
+  }
+
+  const c = traits();
+  // Shape follows the parts: a cell wall makes it boxy, chloroplasts make it slightly flattened
+  const exponent = c.cellwall ? 6 : c.chloroplast ? 3.5 : 2;
+
+  membrane = new THREE.Mesh(
+    shapeGeometry(exponent),
+    mat(c.chloroplast ? 0x9cf0a0 : 0x7fd6ff, { transparent: true, opacity: 0.3, depthWrite: false })
+  );
+  cell.add(membrane);
+
+  wall = null;
+  if (c.cellwall) {
+    wall = new THREE.Mesh(
+      shapeGeometry(exponent),
+      mat(0xb08a4e, { transparent: true, opacity: 0.55, roughness: 0.8 })
+    );
+    wall.scale.setScalar(1.12);
+    cell.add(wall);
+  }
+
+  for (const it of items) {
+    const obj = buildPart(it);
+    if (obj) cell.add(obj);
+  }
+
+  updateInfo();
+}
+
+// ---------- Describing what the cell is ----------
+function classify(c) {
+  if (!Object.keys(c).length) return 'Empty membrane';
+  if (c.cellwall && c.chloroplast) return 'Plant cell';
+  if (c.chloroplast) return 'Algae-like cell';
+  if (c.cellwall && c.nucleus) return 'Fungus-like cell';
+  if (c.cellwall) return 'Bacterium-like cell (wall, no nucleus)';
+  if (c.nucleus) return 'Animal cell';
+  return 'Prokaryote-like cell (no nucleus)';
+}
+
+function updateInfo() {
+  const c = traits();
+  document.getElementById('type').textContent = classify(c);
+
+  const parts = Object.keys(PARTS)
+    .filter((k) => c[k])
+    .map((k) => `${PARTS[k].label} ×${c[k]}`);
+  document.getElementById('traits').textContent =
+    parts.length ? parts.join(' · ') : 'Drag parts from the tray onto the cell';
+
+  const notes = [];
+  if (c.flagellum) notes.push('Motile: flagella push it around');
+  if (c.chloroplast) notes.push('Makes its own food (photosynthesis)');
+  else if (c.mitochondria) notes.push('Makes energy (mitochondria)');
+  if (c.vacuole) notes.push('Stores water and nutrients');
+  if (c.cellwall) notes.push('Rigid: protected by a cell wall');
+  if (!c.nucleus && items.length) notes.push('DNA floats freely (no nucleus)');
+  document.getElementById('notes').textContent = notes.join(' · ');
+
+  document.getElementById('undo').disabled = items.length === 0;
+  document.getElementById('clear').disabled = items.length === 0;
+}
+
+// ---------- Adding and removing parts ----------
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function ndcFor(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return new THREE.Vector2(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1
+  );
+}
+
+function dropPart(type, clientX, clientY) {
+  // Only accept the drop if the finger/pointer is over the canvas, not over the tray
+  if (document.elementFromPoint(clientX, clientY) !== canvas) {
+    toast('Drag a part onto the cell');
+    return;
+  }
+
+  cell.updateMatrixWorld(true);
+  raycaster.setFromCamera(ndcFor(clientX, clientY), camera);
+  const targets = [membrane, wall].filter(Boolean);
+  const hit = raycaster.intersectObjects(targets, false)[0];
+  if (!hit) {
+    toast('Drop it onto the cell membrane');
+    return;
+  }
+
+  const counts = traits();
+  const def = PARTS[type];
+  if ((counts[type] || 0) >= def.max) {
+    toast(def.max === 1 ? `${def.label} is already in the cell` : `Maximum ${def.max} ${def.label}`);
+    return;
+  }
+
+  const local = cell.worldToLocal(hit.point.clone());
+  const outward = local.clone().normalize();
+  let pos = null;
+  let dir = null;
+
+  if (type === 'flagellum') {
+    pos = local.clone();
+    dir = outward;
+  } else if (type !== 'cellwall') {
+    // Internal parts go somewhere inside the membrane, near the spot you dropped on
+    const depth = type === 'vacuole' ? 0.3 : 0.35 + Math.random() * 0.25;
+    pos = outward.clone().multiplyScalar(R * depth);
+  }
+
+  items.push({ id: nextId++, type, pos, dir });
+  rebuild();
+  toast(`Added ${def.label}`);
+}
+
+function removeAt(clientX, clientY) {
+  cell.updateMatrixWorld(true);
+  raycaster.setFromCamera(ndcFor(clientX, clientY), camera);
+
+  const parts = [];
+  cell.traverse((o) => { if (o.userData.itemId) parts.push(o); });
+  const hit = raycaster.intersectObjects(parts, true)[0];
+  if (!hit) return;
+
+  let o = hit.object;
+  while (o && !o.userData.itemId) o = o.parent;
+  if (!o) return;
+
+  const idx = items.findIndex((it) => it.id === o.userData.itemId);
+  if (idx >= 0) {
+    const removed = items.splice(idx, 1)[0];
+    rebuild();
+    toast(`Removed ${PARTS[removed.type].label}`);
+  }
+}
+
+// ---------- Tray: drag a part from the tray onto the cell ----------
+const ghost = document.getElementById('ghost');
+
+document.querySelectorAll('.chip').forEach((chip) => {
+  chip.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const type = chip.dataset.type;
+    chip.setPointerCapture(e.pointerId);
+
+    ghost.textContent = PARTS[type].label;
+    ghost.style.display = 'block';
+    moveGhost(e.clientX, e.clientY);
+
+    const onMove = (ev) => {
+      if (ev.pointerId === e.pointerId) moveGhost(ev.clientX, ev.clientY);
+    };
+    const onEnd = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      chip.removeEventListener('pointermove', onMove);
+      chip.removeEventListener('pointerup', onEnd);
+      chip.removeEventListener('pointercancel', onEnd);
+      ghost.style.display = 'none';
+      if (ev.type === 'pointerup') dropPart(type, ev.clientX, ev.clientY);
+    };
+
+    chip.addEventListener('pointermove', onMove);
+    chip.addEventListener('pointerup', onEnd);
+    chip.addEventListener('pointercancel', onEnd);
+  });
+});
+
+function moveGhost(x, y) {
+  ghost.style.left = x + 'px';
+  ghost.style.top = y + 'px';
+}
+
+// ---------- Canvas: rotate, zoom, tap to remove ----------
+const pointers = new Map();
+let tap = null;
+let lastPinch = 0;
+
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  tap = pointers.size === 1 ? { x: e.clientX, y: e.clientY, moved: false } : null;
+  lastPinch = 0;
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  const prev = pointers.get(e.pointerId);
+  if (!prev) return;
+  const cur = { x: e.clientX, y: e.clientY };
+  pointers.set(e.pointerId, cur);
+
+  if (pointers.size === 1) {
+    cell.rotation.y += (cur.x - prev.x) * 0.008;
+    cell.rotation.x = THREE.MathUtils.clamp(cell.rotation.x + (cur.y - prev.y) * 0.008, -1.2, 1.2);
+    if (tap && Math.hypot(cur.x - tap.x, cur.y - tap.y) > 8) tap.moved = true;
+  } else if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastPinch > 0) {
+      camera.position.z = THREE.MathUtils.clamp(camera.position.z * (lastPinch / dist), 3.5, 10);
+    }
+    lastPinch = dist;
+  }
+});
+
+function endPointer(e) {
+  if (e.type === 'pointerup' && pointers.size === 1 && tap && !tap.moved) {
+    removeAt(e.clientX, e.clientY);
+  }
+  pointers.delete(e.pointerId);
+  if (pointers.size === 0) tap = null;
+  lastPinch = 0;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.005, 3.5, 10);
+}, { passive: false });
+
+// ---------- Buttons ----------
+document.getElementById('undo').addEventListener('click', () => {
+  if (!items.length) return;
+  const removed = items.pop();
+  rebuild();
+  toast(`Undid ${PARTS[removed.type].label}`);
+});
+document.getElementById('clear').addEventListener('click', () => {
+  items.length = 0;
+  rebuild();
+  toast('Cleared');
+});
+
+// Used by the test harness and for debugging
+window.cellEditorState = () => items.map((it) => it.type);
+
+// ---------- Render loop ----------
+function animate() {
+  requestAnimationFrame(animate);
+  if (pointers.size === 0) cell.rotation.y += 0.002;   // slow idle spin
+  renderer.render(scene, camera);
+}
+
+rebuild();
+animate();
+</script>
+</body>
+</html>
